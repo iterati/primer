@@ -97,12 +97,12 @@ Primer is the first OSM firmware fully customizable on-chip.
 
 * Strobe - 5ms/8ms Strobe
 * Hyper - 17ms/17ms Strobe
-* Pops - 1ms/10ms Strobe
+* Dops - 1ms/10ms Strobe
 * Strobie - 3ms/23ms Strobe
 * Pulse - 50ms Fade In and Out/25ms Off
 * Seizure - 5ms Fade In/95ms Off
 * Tracer - 3ms Color/23ms Color 1
-* Dash Pops 
+* Dash Dops
   * 7ms Per Color for Color 2+
   * 7 1ms/10ms Strobes of Color 1
 * Blink-E - 5ms Per Color/50ms Off

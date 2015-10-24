@@ -17,12 +17,12 @@
 
 #define PRIME_STROBE      0
 #define PRIME_HYPER       1
-#define PRIME_POPS        2
+#define PRIME_DOPS        2
 #define PRIME_STROBIE     3
 #define PRIME_PULSE       4
 #define PRIME_SEIZURE     5
 #define PRIME_TRACER      6
-#define PRIME_DASHPOPS    7
+#define PRIME_DASHDOPS    7
 #define PRIME_BLINKE      8
 #define PRIME_EDGE        9
 #define PRIME_LEGO        10

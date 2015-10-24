@@ -148,8 +148,8 @@ void printPrime(uint8_t prime_idx) {
     case PRIME_HYPER:
       Serial.print(F("HYPER STROBE"));
       break;
-    case PRIME_POPS:
-      Serial.print(F("POPS"));
+    case PRIME_DOPS:
+      Serial.print(F("DOPS"));
       break;
     case PRIME_STROBIE:
       Serial.print(F("STROBIE"));
@@ -163,8 +163,8 @@ void printPrime(uint8_t prime_idx) {
     case PRIME_TRACER:
       Serial.print(F("TRACER"));
       break;
-    case PRIME_DASHPOPS:
-      Serial.print(F("DASH POPS"));
+    case PRIME_DASHDOPS:
+      Serial.print(F("DASH DOPS"));
       break;
     case PRIME_BLINKE:
       Serial.print(F("BLINK-E"));
@@ -276,7 +276,7 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       }
       break;
 
-    case PRIME_POPS:
+    case PRIME_DOPS:
       if (tick >= 1 + 10) {
         tick = 0;
         cur_color = (cur_color + 1) % num_colors[cur_variant];
@@ -346,7 +346,7 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       }
       break;
 
-    case PRIME_DASHPOPS:
+    case PRIME_DASHDOPS:
       if (tick >= ((num_colors[cur_variant] - 1) * 7) + ((1 + 10) * 7) + 10) {
         tick = 0;
       }
