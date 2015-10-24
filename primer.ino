@@ -34,7 +34,7 @@ SOFTWARE.
 
 #define NUM_MODES 12
 #define NUM_BUNDLES 4
-const uint8_t current_version = 102;
+const uint8_t current_version = 100;
 
 // MODE CONFIGURATION
 // Mode mode# = Mode(MEMORY_ADDRESS, AMODE_WHAT, ASENS_WHAT,
@@ -47,7 +47,7 @@ Mode mode0 = Mode(520, AMODE_SPEED, ASENS_HIGH,
 
 Mode mode1 = Mode(550, AMODE_SPEED, ASENS_MEDIUM,
   PRIME_HYPER,      3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_HYPER,      3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_HYPER,      3, 0x0C, 0x14, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode mode2 = Mode(580, AMODE_SPEED, ASENS_LOW,
   PRIME_STROBIE,    8, 0x08, 0x0B, 0x0E, 0x11, 0x14, 0x17, 0x1A, 0x1D, 0x00, 0x00, 0x00, 0x00,
@@ -672,7 +672,7 @@ void handlePress(bool pressed) {
         Serial.print(F("confirmed color ")); Serial.println(edit_color);
         if (edit_color == PALETTE_SIZE - 1) {
           mode->save();
-          mode->reset();
+          mode->init();
           Serial.print(F("saving mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" palette "));
           if (mode->cur_variant == 0) { Serial.print(F("A with ")); }
           else {                        Serial.print(F("B with ")); }
@@ -753,7 +753,7 @@ void handlePress(bool pressed) {
     case S_PRIME_SELECT_WAIT:
       if (!pressed) {
         mode->save();
-        mode->init();
+        mode->reset();
         Serial.print(F("saving mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" prime "));
         if (mode->cur_variant == 0) { Serial.print(F("A as ")); }
         else {                        Serial.print(F("B as ")); }

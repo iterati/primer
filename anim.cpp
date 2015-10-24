@@ -537,7 +537,6 @@ void Mode::init() {
 void Mode::reset() {
   tick = 0;
   cur_color = 0;
-  cur_variant = 0;
   counter0 = 0;
   counter1 = 0;
   acc_counter = 0;
