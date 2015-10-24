@@ -34,7 +34,7 @@ SOFTWARE.
 
 #define NUM_MODES 12
 #define NUM_BUNDLES 4
-const uint8_t current_version = 100;
+const uint8_t current_version = 102;
 
 // MODE CONFIGURATION
 // Mode mode# = Mode(MEMORY_ADDRESS, AMODE_WHAT, ASENS_WHAT,
@@ -42,63 +42,64 @@ const uint8_t current_version = 100;
 //   PRIMEB, NUM_COLORS, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8, COLOR9, COLOR10, COLOR11, COLOR12);
 
 Mode mode0 = Mode(520, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+  PRIME_BLINKE,     7, 0x06, 0x3E, 0x3D, 0x3C, 0x3B, 0x3A, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_STROBIE,   11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00);
 
-Mode mode1 = Mode(550, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode1 = Mode(550, AMODE_SPEED, ASENS_MEDIUM,
+  PRIME_HYPER,      3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_HYPER,      3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode mode2 = Mode(580, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode2 = Mode(580, AMODE_SPEED, ASENS_LOW,
+  PRIME_STROBIE,    8, 0x08, 0x0B, 0x0E, 0x11, 0x14, 0x17, 0x1A, 0x1D, 0x00, 0x00, 0x00, 0x00,
+  PRIME_TRACER,     9, 0x3d, 0x08, 0x0B, 0x0E, 0x11, 0x14, 0x17, 0x1A, 0x1D, 0x00, 0x00, 0x00);
 
-Mode mode3 = Mode(610, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode3 = Mode(610, AMODE_TILTX, ASENS_HIGH,
+  PRIME_DASHPOPS,   8, 0x05, 0x1D, 0x1E, 0x1F, 0x08, 0x09, 0x0A, 0x0B, 0x00, 0x00, 0x00, 0x00,
+  PRIME_DASHPOPS,   8, 0x05, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16, 0x15, 0x00, 0x00, 0x00, 0x00);
 
-Mode mode4 = Mode(640, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode4 = Mode(640, AMODE_TILTX, ASENS_MEDIUM,
+  PRIME_DOPS,       3, 0x10, 0x12, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_DOPS,       3, 0x18, 0x16, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode mode5 = Mode(670, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode5 = Mode(670, AMODE_TILTX, ASENS_LOW,
+  PRIME_CHASE,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00,
+  PRIME_MORPH,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00);
 
-Mode mode6 = Mode(700, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode6 = Mode(700, AMODE_TILTY, ASENS_HIGH,
+  PRIME_EDGE,       6, 0x05, 0x10, 0x50, 0x50, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_EDGE,       6, 0x05, 0x18, 0x58, 0x58, 0xC8, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode mode7 = Mode(730, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode7 = Mode(730, AMODE_TILTY, ASENS_MEDIUM,
+  PRIME_LEDO,       3, 0x08, 0x0A, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_LEGO,      3, 0x10, 0x0E, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode mode8 = Mode(760, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode8 = Mode(760, AMODE_TILTY, ASENS_LOW,
+  PRIME_PULSE,      3, 0x16, 0x18, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_PULSE,      3, 0x1E, 0x08, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode mode9 = Mode(790, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode mode9 = Mode(790, AMODE_FLIPZ, ASENS_HIGH,
+  PRIME_CANDY,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00,
+  PRIME_CHASE,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00);
 
-Mode modeA = Mode(820, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode modeA = Mode(820, AMODE_FLIPZ, ASENS_MEDIUM,
+  PRIME_HYPER,      3, 0x18, 0x1A, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_HYPER,      3, 0x08, 0x1E, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode modeB = Mode(850, AMODE_SPEED, ASENS_HIGH,
-  PRIME_STROBE,    12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,
-  PRIME_STROBIE,   12, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E);
+Mode modeB = Mode(850, AMODE_FLIPZ, ASENS_LOW,
+  PRIME_RAVIN,      3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_STROBE,     3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode *modes[12] = {&mode0, &mode1, &mode2, &mode3, &mode4, &mode5, &mode6, &mode7, &mode8, &mode9, &modeA, &modeB};
+
 Mode *mode;
 
 uint8_t bundles[NUM_BUNDLES][NUM_MODES] = {
-  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
-  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
-  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
-  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
+  { 0,  1,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0},
+  { 3,  4,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0},
+  { 6,  7,  8,  0,  0,  0,  0,  0,  0,  0,  0,  0},
+  { 9, 10, 11,  0,  0,  0,  0,  0,  0,  0,  0,  0},
 };
-uint8_t bundle_slots[NUM_BUNDLES] = {12, 12, 12, 12};
+uint8_t bundle_slots[NUM_BUNDLES] = {3, 3, 3, 3};
 uint8_t cur_bundle = 0;
 uint8_t bundle_idx = 0;
 
@@ -116,6 +117,24 @@ uint16_t since_press = 0;
 bool conjure = false;
 bool conjure_toggle = false;
 
+const PROGMEM uint8_t gamma_table[256] = {
+    0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,
+    2,   2,   2,   3,   3,   3,   3,   3,   3,   4,   4,   4,   4,   4,   5,   5,
+    5,   5,   6,   6,   6,   6,   7,   7,   7,   7,   8,   8,   8,   8,   9,   9,
+    9,  10,  10,  10,  10,  11,  11,  11,  12,  12,  12,  13,  13,  14,  14,  14,
+   15,  15,  15,  16,  16,  17,  17,  17,  18,  18,  19,  19,  20,  20,  20,  21,
+   21,  22,  22,  23,  23,  24,  24,  25,  25,  26,  26,  27,  27,  28,  28,  29,
+   30,  30,  31,  31,  32,  32,  33,  33,  34,  35,  35,  36,  37,  37,  38,  38,
+   39,  40,  40,  41,  42,  42,  43,  44,  44,  45,  46,  46,  47,  48,  49,  49,
+   50,  51,  51,  52,  53,  54,  54,  55,  56,  57,  58,  58,  59,  60,  61,  62,
+   62,  63,  64,  65,  66,  67,  67,  68,  69,  70,  71,  72,  73,  74,  75,  75,
+   76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,
+   92,  93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 106, 107, 108,
+  109, 110, 111, 112, 113, 114, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126,
+  127, 129, 130, 131, 132, 134, 135, 136, 137, 139, 140, 141, 142, 144, 145, 146,
+  148, 149, 150, 152, 153, 154, 156, 157, 158, 160, 161, 163, 164, 165, 167, 168,
+  170, 171, 172, 174, 175, 177, 178, 180, 181, 183, 184, 185, 187, 188, 190, 192,
+};
 
 // ********************************************************************
 // **** SETUP CODE ****************************************************
@@ -301,9 +320,9 @@ void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
   while (limiter < 64000) {}
   limiter = 0;
 
-  analogWrite(PIN_R, r);
-  analogWrite(PIN_G, g);
-  analogWrite(PIN_B, b);
+  analogWrite(PIN_R, pgm_read_byte(&gamma_table[r]));
+  analogWrite(PIN_G, pgm_read_byte(&gamma_table[g]));
+  analogWrite(PIN_B, pgm_read_byte(&gamma_table[b]));
 }
 
 void resetMode() {
@@ -366,7 +385,7 @@ void accUpdate() {
       alpha = 0.5;
       break;
     default: // case ASENS_HIGH:
-      alpha = 0.9;
+      alpha = 0.75;
       break;
   }
 
@@ -869,8 +888,10 @@ void handlePress(bool pressed) {
     case S_BUNDLE_EDIT_PRESSED:
       if (!pressed) {
         bundles[cur_bundle][bundle_idx] = (bundles[cur_bundle][bundle_idx] + 1) % NUM_MODES;
-        Serial.print(F("switching bundle ")); Serial.print(cur_bundle); Serial.print(F(" slot ")); Serial.print(bundle_idx);
-        Serial.print(F(" to ")); Serial.println(bundles[cur_bundle][bundle_idx]);
+        mode = modes[bundles[cur_bundle][bundle_idx]];
+        mode->init();
+        Serial.print(F("switching bundle ")); Serial.print(cur_bundle); Serial.print(F(" slot "));
+        Serial.print(bundle_idx); Serial.print(F(" to ")); Serial.println(bundles[cur_bundle][bundle_idx]);
         button_state = S_BUNDLE_EDIT_OFF;
       } else if (since_press >= 1500) {
         Serial.print(F("will set... "));
@@ -881,16 +902,18 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_EDIT_WAIT:
       if (!pressed) {
-        Serial.println(F("set bundle ")); Serial.print(cur_bundle); Serial.print(F(" slot ")); Serial.print(bundle_idx);
-        Serial.print(F(" to ")); Serial.println(bundles[cur_bundle][bundle_idx]);
+        Serial.print(F("set bundle ")); Serial.print(cur_bundle); Serial.print(F(" slot "));
+        Serial.print(bundle_idx); Serial.print(F(" to ")); Serial.println(bundles[cur_bundle][bundle_idx]);
         bundle_idx++;
-        if (bundle_idx == NUM_MODES - 1) {
+        if (bundle_idx == NUM_MODES) {
           saveBundles();
           resetMode();
           Serial.print(F("saved bundle ")); Serial.print(cur_bundle); Serial.print(F(". using "));
           Serial.print(bundle_idx + 1); Serial.println(F(" slots"));
           button_state = S_PLAY_OFF;
         } else {
+          mode = modes[bundles[cur_bundle][bundle_idx]];
+          mode->init();
           button_state = S_BUNDLE_EDIT_OFF;
         }
       } else if (since_press >= 1500) {
@@ -903,10 +926,10 @@ void handlePress(bool pressed) {
     case S_BUNDLE_EDIT_SAVE:
       if (!pressed) {
         saveBundles();
-        resetMode();
         bundle_slots[cur_bundle] = bundle_idx + 1;
+        resetMode();
         Serial.print(F("saved bundle ")); Serial.print(cur_bundle); Serial.print(F(". using "));
-        Serial.print(bundle_idx + 1); Serial.println(F(" slots"));
+        Serial.print(bundle_slots[cur_bundle]); Serial.println(F(" slots"));
         button_state = S_PLAY_OFF;
       }
       break;
@@ -949,14 +972,11 @@ void enterSleep() {
       limiter = 0;
       held_count++;
     }
-    if (held_count == 1500) {
-      Serial.print(F("will select bundle... "));
-      flash(0, 0, 128, 5);
-    }
   }
 
   if (held_count > 1500) {
     Serial.println(F("select bundle"));
+    flash(0, 0, 128, 5);
     button_state = S_BUNDLE_SELECT_OFF;
   } else {
     Serial.println(F("play"));

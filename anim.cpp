@@ -148,8 +148,8 @@ void printPrime(uint8_t prime_idx) {
     case PRIME_HYPER:
       Serial.print(F("HYPER STROBE"));
       break;
-    case PRIME_DOPS:
-      Serial.print(F("DOPS"));
+    case PRIME_POPS:
+      Serial.print(F("POPS"));
       break;
     case PRIME_STROBIE:
       Serial.print(F("STROBIE"));
@@ -163,8 +163,8 @@ void printPrime(uint8_t prime_idx) {
     case PRIME_TRACER:
       Serial.print(F("TRACER"));
       break;
-    case PRIME_DASHDOPS:
-      Serial.print(F("DASH DOPS"));
+    case PRIME_DASHPOPS:
+      Serial.print(F("DASH POPS"));
       break;
     case PRIME_BLINKE:
       Serial.print(F("BLINK-E"));
@@ -276,7 +276,7 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       }
       break;
 
-    case PRIME_DOPS:
+    case PRIME_POPS:
       if (tick >= 1 + 10) {
         tick = 0;
         cur_color = (cur_color + 1) % num_colors[cur_variant];
@@ -346,8 +346,8 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       }
       break;
 
-    case PRIME_DASHDOPS:
-      if (tick >= ((num_colors[cur_variant] - 1) * 7) + ((1 + 10) * 7)) {
+    case PRIME_DASHPOPS:
+      if (tick >= ((num_colors[cur_variant] - 1) * 7) + ((1 + 10) * 7) + 10) {
         tick = 0;
       }
 
@@ -356,7 +356,7 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         unpackColor(palette[cur_variant][counter0], &_r, &_g, &_b);
       } else {
         counter0 = tick - ((num_colors[cur_variant] - 1) * 7);
-        if (counter0 % 11 < 1) {
+        if (counter0 % 11 == 10) {
           unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
         } else {
           _r = 0; _g = 0; _b = 0;
@@ -377,16 +377,18 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       break;
 
     case PRIME_EDGE:
-      if (tick >= ((num_colors[cur_variant] - 1) * 2) + 5 + 20) {
+      if (counter0 == 0) counter0 = (num_colors[cur_variant] - 1) * 2;
+      if (tick >= (counter0 * 2) + 5 + 20) {
         tick = 0;
       }
 
-      if (tick < num_colors[cur_variant] - 1) {
-        unpackColor(palette[cur_variant][(num_colors[cur_variant] - 1) - (tick + 1)], &_r, &_g, &_b);
-      } else if (tick < (num_colors[cur_variant] - 1) + 5) {
+      counter1 = tick / 2;
+      if (counter1 < counter0) {
+        unpackColor(palette[cur_variant][counter0 - counter1], &_r, &_g, &_b);
+      } else if (counter1 < counter0 + 5) {
         unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
-      } else if (tick < ((num_colors[cur_variant] - 1) * 2) + 5) {
-        unpackColor(palette[cur_variant][tick - ((num_colors[cur_variant] - 1) + 5)], &_r, &_g, &_b);
+      } else if (counter1 < (counter0 * 2) + 5) {
+        unpackColor(palette[cur_variant][(counter1 - (counter0 + 5)) + 1], &_r, &_g, &_b);
       } else {
         _r = 0; _g = 0; _b = 0;
       }
