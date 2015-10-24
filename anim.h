@@ -11,9 +11,9 @@
 #define AMODE_TILTY       3
 #define AMODE_FLIPZ       4
 
-#define ASENS_LOW         0
+#define ASENS_LOW         2
 #define ASENS_MEDIUM      1
-#define ASENS_HIGH        2
+#define ASENS_HIGH        0
 
 #define PRIME_STROBE      0
 #define PRIME_HYPER       1
@@ -34,9 +34,6 @@
 
 
 void unpackColor(uint8_t color, uint8_t *r, uint8_t *g, uint8_t *b);
-void printAccMode(uint8_t acc_mode);
-void printAccSensitivity(uint8_t acc_sensitivity);
-void printPrime(uint8_t prime_idx);
 
 
 class Mode {

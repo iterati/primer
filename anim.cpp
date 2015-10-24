@@ -9,83 +9,83 @@ uint8_t r1, g1, b1;
 
 const PROGMEM uint8_t color_palette[64][3] = {
   // Blank and whites
-  {0, 0, 0},        // 0x00
-  {255, 255, 255},  // 0x01
-  {255, 191, 191},  // 0x02
-  {255, 255, 191},  // 0x03
-  {191, 255, 191},  // 0x04
-  {191, 255, 255},  // 0x05
-  {191, 191, 255},  // 0x06
-  {255, 191, 255},  // 0x07
+  {  0,   0,   0},  // 0x00
+  {144, 144, 144},  // 0x01
+  {192, 140, 140},  // 0x02
+  {184, 184, 148},  // 0x03
+  {140, 192, 140},  // 0x04
+  {148, 184, 184},  // 0x05
+  {140, 140, 192},  // 0x06
+  {184, 148, 184},  // 0x07
 
   // Red - green
-  {255, 0, 0},      // 0x08
-  {255, 63, 0},     // 0x09
-  {255, 127, 0},    // 0x0a
-  {255, 191, 0},    // 0x0b
-  {255, 255, 0},    // 0x0c
-  {191, 255, 0},    // 0x0d
-  {127, 255, 0},    // 0x0e
-  {63, 255, 0},     // 0x0f
+  {255,   0,   0},  // 0x08
+  {252,  63,   0},  // 0x09
+  {248, 127,   0},  // 0x0a
+  {244, 191,   0},  // 0x0b
+  {240, 240,   0},  // 0x0c
+  {191, 244,   0},  // 0x0d
+  {127, 248,   0},  // 0x0e
+  { 63, 252,   0},  // 0x0f
 
   // Green - blue
-  {0, 255, 0},      // 0x10
-  {0, 255, 63},     // 0x11
-  {0, 255, 127},    // 0x12
-  {0, 255, 191},    // 0x13
-  {0, 255, 255},    // 0x14
-  {0, 191, 255},    // 0x15
-  {0, 127, 255},    // 0x16
-  {0, 63, 255},     // 0x17
+  {  0,   0, 255},  // 0x10
+  {  0,  63, 252},  // 0x11
+  {  0, 127, 248},  // 0x12
+  {  0, 191, 244},  // 0x13
+  {  0, 240, 240},  // 0x14
+  {  0, 244, 191},  // 0x15
+  {  0, 248, 127},  // 0x16
+  {  0, 252,  63},  // 0x17
 
   // Blue - red
-  {0, 0, 255},      // 0x18
-  {63, 0, 255},     // 0x19
-  {127, 0, 255},    // 0x1a
-  {191, 0, 255},    // 0x1b
-  {255, 0, 255},    // 0x1c
-  {255, 0, 191},    // 0x1d
-  {255, 0, 127},    // 0x1e
-  {255, 0, 63},     // 0x1f
+  {  0,   0, 255},  // 0x18
+  { 63,   0, 252},  // 0x19
+  {127,   0, 248},  // 0x1a
+  {191,   0, 244},  // 0x1b
+  {240,   0, 240},  // 0x1c
+  {244,   0, 191},  // 0x1d
+  {248,   0, 127},  // 0x1e
+  {252,   0,  63},  // 0x1f
 
   // Red - green saturated
-  {255, 64,  64},   // 0x20
-  {255, 112, 64},   // 0x21
-  {255, 160, 64},   // 0x22
-  {255, 208, 64},   // 0x23
-  {255, 255, 64},   // 0x24
-  {208, 255, 64},   // 0x25
-  {160, 255, 64},   // 0x26
-  {112, 255, 64},   // 0x27
+  {224,  64,  64},  // 0x20
+  {216,  96,  64},  // 0x21
+  {208, 128,  64},  // 0x22
+  {200, 160,  64},  // 0x23
+  {192, 192,  64},  // 0x24
+  {160, 200,  64},  // 0x25
+  {128, 208,  64},  // 0x26
+  {104, 216,  64},  // 0x27
 
   // Green - blue saturated
-  {64, 255, 64},    // 0x28
-  {64, 255, 112},   // 0x29
-  {64, 255, 160},   // 0x2a
-  {64, 255, 208},   // 0x2b
-  {64, 255, 255},   // 0x2c
-  {64, 208, 255},   // 0x2d
-  {64, 160, 255},   // 0x2e
-  {64, 112, 255},   // 0x2f
+  { 64, 224,  64},  // 0x28
+  { 64, 216,  96},  // 0x29
+  { 64, 208, 128},  // 0x2a
+  { 64, 200, 160},  // 0x2b
+  { 64, 192, 192},  // 0x2c
+  { 64, 160, 200},  // 0x2d
+  { 64, 128, 208},  // 0x2e
+  { 64, 104, 216},  // 0x2f
 
   // Blue - red saturated
-  {64,  64, 255},   // 0x30
-  {112, 64, 255},   // 0x31
-  {160, 64, 255},   // 0x32
-  {208, 64, 255},   // 0x33
-  {255, 64, 255},   // 0x34
-  {255, 64, 208},   // 0x35
-  {255, 64, 160},   // 0x36
-  {255, 64, 112},   // 0x37
+  { 64,  64, 224},  // 0x30
+  { 96,  64, 216},  // 0x31
+  {128,  64, 208},  // 0x32
+  {160,  64, 200},  // 0x33
+  {192,  64, 192},  // 0x34
+  {200,  64, 160},  // 0x35
+  {208,  64, 128},  // 0x36
+  {216,  64, 104},  // 0x37
 
   // Dim colors
-  {32, 32, 32},     // 0x38
-  {32, 0, 0},       // 0x39
-  {32, 32, 0},      // 0x3a
-  {0, 32, 0},       // 0x3b
-  {0, 32, 32},      // 0x3c
-  {0, 0, 32},       // 0x3d
-  {32, 0, 32},      // 0x3e
+  { 32,  32,  32},  // 0x38
+  { 48,   0,   0},  // 0x39
+  { 40,  40,   0},  // 0x3a
+  {  0,  48,   0},  // 0x3b
+  {  0,  40,  40},  // 0x3c
+  {  0,   0,  48},  // 0x3d
+  { 40,   0,  40},  // 0x3e
 };
 
 void unpackColor(uint8_t color, uint8_t *r, uint8_t *g, uint8_t *b) {
@@ -104,93 +104,6 @@ void morphColor(uint16_t tick, uint16_t morph_time,
   *r = r0 + (int)(r1 - r0) * (tick / (float)morph_time);
   *g = g0 + (int)(g1 - g0) * (tick / (float)morph_time);
   *b = b0 + (int)(b1 - b0) * (tick / (float)morph_time);
-}
-
-void printAccMode(uint8_t acc_mode) {
-  switch (acc_mode) {
-    case AMODE_SPEED:
-      Serial.print(F("SPEED"));
-      break;
-    case AMODE_TILTX:
-      Serial.print(F("TILTX"));
-      break;
-    case AMODE_TILTY:
-      Serial.print(F("TILTY"));
-      break;
-    case AMODE_FLIPZ:
-      Serial.print(F("FLIPZ"));
-      break;
-    default: // case AMODE_OFF
-      Serial.print(F("OFF"));
-      break;
-  }
-}
-
-void printAccSensitivity(uint8_t acc_sensitivity) {
-  switch (acc_sensitivity) {
-    case ASENS_LOW:
-      Serial.print(F("LOW"));
-      break;
-    case ASENS_MEDIUM:
-      Serial.print(F("MEDIUM"));
-      break;
-    default: // case ASENS_HIGH:
-      Serial.print(F("HIGH"));
-      break;
-  }
-}
-
-void printPrime(uint8_t prime_idx) {
-  switch (prime_idx) {
-    case PRIME_STROBE:
-      Serial.print(F("STROBE"));
-      break;
-    case PRIME_HYPER:
-      Serial.print(F("HYPER STROBE"));
-      break;
-    case PRIME_DOPS:
-      Serial.print(F("DOPS"));
-      break;
-    case PRIME_STROBIE:
-      Serial.print(F("STROBIE"));
-      break;
-    case PRIME_PULSE:
-      Serial.print(F("PULSE"));
-      break;
-    case PRIME_SEIZURE:
-      Serial.print(F("SEIZURE STROBE"));
-      break;
-    case PRIME_TRACER:
-      Serial.print(F("TRACER"));
-      break;
-    case PRIME_DASHDOPS:
-      Serial.print(F("DASH DOPS"));
-      break;
-    case PRIME_BLINKE:
-      Serial.print(F("BLINK-E"));
-      break;
-    case PRIME_EDGE:
-      Serial.print(F("EDGE"));
-      break;
-    case PRIME_LEGO:
-      Serial.print(F("LEGO"));
-      break;
-    case PRIME_CHASE:
-      Serial.print(F("CHASE"));
-      break;
-    case PRIME_MORPH:
-      Serial.print(F("MORPH STROBE"));
-      break;
-    case PRIME_RIBBON:
-      Serial.print(F("RIBBON"));
-      break;
-    case PRIME_RAVIN:
-      Serial.print(F("RAVIN STROBE"));
-      break;
-    default: // case PRIME_CANDY:
-      Serial.print(F("CANDY STROBE"));
-      break;
-  }
 }
 
 uint8_t getLegoTime() {
@@ -558,7 +471,8 @@ void Mode::updateAcc(float fxg, float fyg, float fzg) {
         } else {
           acc_counter--;
         }
-        if (acc_counter > 25) {
+
+        if (acc_counter > 15 << acc_sensitivity) {
           cur_variant = 1;
         }
       } else {
@@ -571,8 +485,8 @@ void Mode::updateAcc(float fxg, float fyg, float fzg) {
         }
         if (acc_counter <= 0) {
           cur_variant = 0;
-        } else if (acc_counter > 50) {
-          acc_counter = 50;
+        } else if (acc_counter > 25 << acc_sensitivity) {
+          acc_counter = 25 << acc_sensitivity;
         }
       }
       break;
@@ -581,16 +495,12 @@ void Mode::updateAcc(float fxg, float fyg, float fzg) {
       pitch = (atan2(fxg, sqrt(fyg * fyg + fzg * fzg)) * 180.0) / M_PI;
       if (cur_variant == 0) {
         acc_counter += (pitch < -75) ? 1 : -1;
-        if (acc_counter > 25) {
-          acc_counter = 0;
-          cur_variant = 1;
-        }
       } else {
         acc_counter += (pitch > 75) ? 1 : -1;
-        if (acc_counter > 25) {
-          acc_counter = 0;
-          cur_variant = 0;
-        }
+      }
+      if (acc_counter > 15 << acc_sensitivity) {
+        acc_counter = 0;
+        cur_variant = (cur_variant == 0) ? 1 : 0;
       }
       break;
 
@@ -598,32 +508,24 @@ void Mode::updateAcc(float fxg, float fyg, float fzg) {
       pitch = (atan2(fyg, sqrt(fxg * fxg + fzg * fzg)) * 180.0) / M_PI;
       if (cur_variant == 0) {
         acc_counter += (pitch < -75) ? 1 : -1;
-        if (acc_counter > 25) {
-          acc_counter = 0;
-          cur_variant = 1;
-        }
       } else {
         acc_counter += (pitch > 75) ? 1 : -1;
-        if (acc_counter > 25) {
-          acc_counter = 0;
-          cur_variant = 0;
-        }
+      }
+      if (acc_counter > 15 << acc_sensitivity) {
+        acc_counter = 0;
+        cur_variant = (cur_variant == 0) ? 1 : 0;
       }
       break;
 
     case AMODE_FLIPZ:
       if (cur_variant == 0) {
         acc_counter += (fzg < -0.95) ? 1 : -1;
-        if (acc_counter > 25) {
-          acc_counter = 0;
-          cur_variant = 1;
-        }
       } else {
         acc_counter += (fzg > 0.95) ? 1 : -1;
-        if (acc_counter > 25) {
-          acc_counter = 0;
-          cur_variant = 0;
-        }
+      }
+      if (acc_counter > 15 << acc_sensitivity) {
+        acc_counter = 0;
+        cur_variant = (cur_variant == 0) ? 1 : 0;
       }
       break;
 

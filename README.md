@@ -3,6 +3,22 @@
 Primer is the first OSM firmware fully customizable on-chip.
 
 
+##  Installation
+
+### Packaged release on Mac OS X
+
+*  Download the latest .dmg from the releases tab.
+*  Open the .dmg and double-click on "Upload .hex"
+
+### Packaged release on Windows
+
+* Download the latest .hex from the releases tab.
+* Using XLoader, follow this tutorial on how to install.
+  * Make sure to use 115200 for the speed.
+  * Make sure to select "Uno(ATMega328)" from the Device dropdown.
+  * Be sure to select the correct .hex file.
+
+
 ## Features
 
 * **12** Fully Customizable

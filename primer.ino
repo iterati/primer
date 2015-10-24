@@ -42,62 +42,62 @@ const uint8_t current_version = 100;
 //   PRIMEB, NUM_COLORS, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8, COLOR9, COLOR10, COLOR11, COLOR12);
 
 Mode mode0 = Mode(520, AMODE_SPEED, ASENS_HIGH,
-  PRIME_BLINKE,     7, 0x06, 0x3E, 0x3D, 0x3C, 0x3B, 0x3A, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_STROBIE,   11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00);
+  PRIME_BLINKE,     7, 0x46, 0x7E, 0x7D, 0x7C, 0x7B, 0x7A, 0x79, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_STROBIE,   11, 0x48, 0x4E, 0x54, 0x5A, 0x4A, 0x50, 0x56, 0x5C, 0x4C, 0x52, 0x58, 0x00);
 
 Mode mode1 = Mode(550, AMODE_SPEED, ASENS_MEDIUM,
-  PRIME_HYPER,      3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_HYPER,      3, 0x0C, 0x14, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_HYPER,      3, 0x48, 0x50, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_HYPER,      3, 0x4C, 0x54, 0x5C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode mode2 = Mode(580, AMODE_SPEED, ASENS_LOW,
-  PRIME_STROBIE,    8, 0x08, 0x0B, 0x0E, 0x11, 0x14, 0x17, 0x1A, 0x1D, 0x00, 0x00, 0x00, 0x00,
-  PRIME_TRACER,     9, 0x3d, 0x08, 0x0B, 0x0E, 0x11, 0x14, 0x17, 0x1A, 0x1D, 0x00, 0x00, 0x00);
+  PRIME_STROBIE,    8, 0x48, 0x4B, 0x4E, 0x51, 0x54, 0x57, 0x5A, 0x5D, 0x00, 0x00, 0x00, 0x00,
+  PRIME_TRACER,     9, 0xBd, 0x48, 0x4B, 0x4E, 0x51, 0x54, 0x57, 0x5A, 0x5D, 0x00, 0x00, 0x00);
 
 Mode mode3 = Mode(610, AMODE_TILTX, ASENS_HIGH,
-  PRIME_DASHDOPS,   8, 0x05, 0x1D, 0x1E, 0x1F, 0x08, 0x09, 0x0A, 0x0B, 0x00, 0x00, 0x00, 0x00,
-  PRIME_DASHDOPS,   8, 0x05, 0x1B, 0x1A, 0x19, 0x18, 0x17, 0x16, 0x15, 0x00, 0x00, 0x00, 0x00);
+  PRIME_DASHDOPS,   8, 0x45, 0x5D, 0x5E, 0x5F, 0x48, 0x49, 0x4A, 0x4B, 0x00, 0x00, 0x00, 0x00,
+  PRIME_DASHDOPS,   8, 0x45, 0x5B, 0x5A, 0x59, 0x58, 0x57, 0x56, 0x55, 0x00, 0x00, 0x00, 0x00);
 
 Mode mode4 = Mode(640, AMODE_TILTX, ASENS_MEDIUM,
-  PRIME_DOPS,       3, 0x10, 0x12, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_DOPS,       3, 0x18, 0x16, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_DOPS,       3, 0x50, 0x52, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_DOPS,       3, 0x58, 0x56, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode mode5 = Mode(670, AMODE_TILTX, ASENS_LOW,
-  PRIME_CHASE,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00,
-  PRIME_MORPH,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00);
+  PRIME_CHASE,     11, 0x48, 0x4E, 0x54, 0x5A, 0x4A, 0x50, 0x56, 0x5C, 0x4C, 0x52, 0x58, 0x00,
+  PRIME_MORPH,     11, 0x48, 0x4E, 0x54, 0x5A, 0x4A, 0x50, 0x56, 0x5C, 0x4C, 0x52, 0x58, 0x00);
 
 Mode mode6 = Mode(700, AMODE_TILTY, ASENS_HIGH,
-  PRIME_EDGE,       6, 0x05, 0x10, 0x50, 0x50, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_EDGE,       6, 0x05, 0x18, 0x58, 0x58, 0xC8, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_EDGE,       6, 0x08, 0x49, 0x4A, 0x8B, 0x8C, 0xCD, 0xCE, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_EDGE,       6, 0x18, 0x59, 0x5A, 0x9B, 0x9C, 0xDD, 0xDE, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode mode7 = Mode(730, AMODE_TILTY, ASENS_MEDIUM,
-  PRIME_LEGO,       3, 0x08, 0x0A, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_LEGO,      3, 0x10, 0x0E, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_LEGO,       3, 0x48, 0x4A, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_LEGO,       3, 0x50, 0x4E, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode mode8 = Mode(760, AMODE_TILTY, ASENS_LOW,
-  PRIME_PULSE,      3, 0x16, 0x18, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_PULSE,      3, 0x1E, 0x08, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_PULSE,      3, 0x56, 0x58, 0x5A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_PULSE,      3, 0x5E, 0x48, 0x4A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode mode9 = Mode(790, AMODE_FLIPZ, ASENS_HIGH,
-  PRIME_CANDY,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00,
-  PRIME_CHASE,     11, 0x08, 0x0E, 0x14, 0x1A, 0x0A, 0x10, 0x16, 0x1C, 0x0C, 0x12, 0x18, 0x00);
+  PRIME_CANDY,     11, 0x48, 0x4E, 0x54, 0x5A, 0x4A, 0x50, 0x56, 0x5C, 0x4C, 0x52, 0x58, 0x00,
+  PRIME_CHASE,     11, 0x48, 0x4E, 0x54, 0x5A, 0x4A, 0x50, 0x56, 0x5C, 0x4C, 0x52, 0x58, 0x00);
 
 Mode modeA = Mode(820, AMODE_FLIPZ, ASENS_MEDIUM,
-  PRIME_HYPER,      3, 0x18, 0x1A, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_HYPER,      3, 0x08, 0x1E, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_HYPER,      3, 0x58, 0x5A, 0x5C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_HYPER,      3, 0x48, 0x5E, 0x5C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode modeB = Mode(850, AMODE_FLIPZ, ASENS_LOW,
-  PRIME_RAVIN,      3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  PRIME_STROBE,     3, 0x08, 0x10, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  PRIME_RAVIN,      3, 0x48, 0x50, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  PRIME_STROBE,     3, 0x48, 0x50, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
 Mode *modes[12] = {&mode0, &mode1, &mode2, &mode3, &mode4, &mode5, &mode6, &mode7, &mode8, &mode9, &modeA, &modeB};
 
 Mode *mode;
 
 uint8_t bundles[NUM_BUNDLES][NUM_MODES] = {
-  { 0,  1,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0},
-  { 3,  4,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0},
-  { 6,  7,  8,  0,  0,  0,  0,  0,  0,  0,  0,  0},
-  { 9, 10, 11,  0,  0,  0,  0,  0,  0,  0,  0,  0},
+  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
+  { 1,  0,  2,  3,  4,  5,  0,  0,  0,  0,  0,  0},
+  { 6,  7,  8,  9, 10, 11,  0,  0,  0,  0,  0,  0},
+  { 2,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0},
 };
 uint8_t bundle_slots[NUM_BUNDLES] = {3, 3, 3, 3};
 uint8_t cur_bundle = 0;
@@ -113,6 +113,7 @@ float fxg, fyg, fzg = 0.0;
 uint8_t button_state = 0;
 uint8_t config_state = 0;
 uint16_t since_press = 0;
+bool transitioned = true;
 
 bool conjure = false;
 bool conjure_toggle = false;
@@ -188,7 +189,7 @@ void setup() {
   power_spi_disable();
 
   Serial.begin(57600);
-  Serial.println(F("\nWelcome to Primer!"));
+  randomSeed(analogRead(0));
 
   pinMode(PIN_R, OUTPUT);
   pinMode(PIN_G, OUTPUT);
@@ -197,8 +198,9 @@ void setup() {
   pinMode(PIN_LDO, OUTPUT);
   digitalWrite(PIN_LDO, HIGH);
 
+  Serial.println(F("\nWelcome to Primer!"));
   if (current_version != EEPROM.read(512)) {
-    Serial.println(F("Version mismatch. Writing new EEPROM."));
+    Serial.println(F("Version mismatch. Writing defaults to EEPROM."));
     saveModes();
     saveBundles();
     EEPROM.update(512, current_version);
@@ -207,7 +209,7 @@ void setup() {
     loadModes();
     loadBundles();
   }
-  Serial.print(F("Version ")); Serial.println(current_version);
+  Serial.print(F("Prime v0.1.5. EEPROM Version: ")); Serial.println(current_version);
 
   for (uint8_t i = 0; i < NUM_MODES; i++) modes[i]->init();
   accInit();
@@ -221,7 +223,7 @@ void setup() {
   delay(4000);
   limiter = 0;
   resetMode();
-  randomSeed(analogRead(0));
+  transitioned = true;
 }
 
 void loop() {
@@ -376,28 +378,15 @@ float translateAccel(int8_t g, float fg, float alpha) {
 }
 
 void accUpdate() {
-  float alpha;
-  switch (mode->acc_sensitivity) {
-    case ASENS_LOW:
-      alpha = 0.1;
-      break;
-    case ASENS_MEDIUM:
-      alpha = 0.5;
-      break;
-    default: // case ASENS_HIGH:
-      alpha = 0.75;
-      break;
-  }
-
   Wire.beginTransmission(MMA7660_ADDRESS);
   Wire.write(0x00);
   Wire.endTransmission();
   Wire.requestFrom(MMA7660_ADDRESS, 3);
 
   if (Wire.available()) {
-    fxg = translateAccel(Wire.read(), fxg, alpha);
-    fyg = translateAccel(Wire.read(), fyg, alpha);
-    fzg = translateAccel(Wire.read(), fzg, alpha);
+    fxg = translateAccel(Wire.read(), fxg, 0.9);
+    fyg = translateAccel(Wire.read(), fyg, 0.9);
+    fzg = translateAccel(Wire.read(), fzg, 0.9);
   }
 }
 
@@ -443,6 +432,7 @@ void accUpdate() {
 #define S_BUNDLE_SELECT_PRESSED       71
 #define S_BUNDLE_SELECT_WAIT          72
 #define S_BUNDLE_SELECT_EDIT          73
+#define S_BUNDLE_SELECT_START         74
 
 #define S_BUNDLE_EDIT_OFF             80
 #define S_BUNDLE_EDIT_PRESSED         81
@@ -455,6 +445,10 @@ void handlePress(bool pressed) {
     //** PLAY **********************************************
     //******************************************************
     case S_PLAY_OFF:
+      if (transitioned) {
+        transitioned = false;
+        Serial.print(F("playing: ")); printCurMode(); Serial.println();
+      }
       if (pressed) {
         since_press = 0;
         button_state = S_PLAY_PRESSED;
@@ -465,11 +459,11 @@ void handlePress(bool pressed) {
       if (!pressed) {
         if (conjure) {
           conjure_toggle = !conjure_toggle;
-          if (conjure_toggle) { Serial.println(F("conjure_toggle on")); }
-          else {                Serial.println(F("conjure_toggle off")); }
+          if (conjure_toggle) { Serial.println(F("conjure: light off")); }
+          else {                Serial.println(F("conjure: light on")); }
         } else {
           incMode();
-          Serial.print(F("switched to mode ")); Serial.println(bundles[cur_bundle][bundle_idx]);
+          transitioned = true;
         }
         button_state = S_PLAY_OFF;
       } else if (since_press > 1000) {
@@ -492,9 +486,10 @@ void handlePress(bool pressed) {
 
     case S_PLAY_CONJURE_WAIT:
       if (!pressed) {
-        if (conjure) { Serial.println(F("conjure off")); }
-        else {         Serial.println(F("conjure on")); }
         conjure = !conjure;
+        conjure_toggle = false;
+        if (conjure) { Serial.println(F("conjure on")); }
+        else {         Serial.println(F("conjure off")); }
         button_state = S_PLAY_OFF;
       } else if (since_press > 1500) {
         Serial.print(F("config... "));
@@ -506,7 +501,8 @@ void handlePress(bool pressed) {
     case S_PLAY_CONFIG_WAIT:
       if (!pressed) {
         mode->init();
-        Serial.println(F("configure palette A"));
+        Serial.print(F("enter config menu: mode ")); Serial.println(bundles[cur_bundle][bundle_idx] + 1);
+        transitioned = true;
         config_state = CONFIG_PALETTE0;
         button_state = S_CONFIG_SELECT_OFF;
       }
@@ -516,6 +512,10 @@ void handlePress(bool pressed) {
     //** CONFIG SELECT *************************************
     //******************************************************
     case S_CONFIG_SELECT_OFF:
+      if (transitioned) {
+        transitioned = false;
+        printConfigMode();
+      }
       if (pressed) {
         since_press = 0;
         button_state = S_CONFIG_SELECT_PRESSED;
@@ -525,26 +525,7 @@ void handlePress(bool pressed) {
     case S_CONFIG_SELECT_PRESSED:
       if (!pressed) {
         config_state = (config_state + 1) % 6;
-        switch (config_state) {
-          case CONFIG_PALETTE0:
-            Serial.println(F("configure palette A"));
-            break;
-          case CONFIG_PALETTE1:
-            Serial.println(F("configure palette B"));
-            break;
-          case CONFIG_PRIME0:
-            Serial.println(F("configure prime A"));
-            break;
-          case CONFIG_PRIME1:
-            Serial.println(F("configure prime B"));
-            break;
-          case CONFIG_ACC_MODE:
-            Serial.println(F("configure acc mode"));
-            break;
-          default: // case CONFIG_ACC_SENS:
-            Serial.println(F("configure acc sensitivity"));
-            break;
-        }
+        transitioned = true;
         button_state = S_CONFIG_SELECT_OFF;
       } else if (since_press > 1000) {
         Serial.print(F("will enter config... "));
@@ -555,38 +536,40 @@ void handlePress(bool pressed) {
 
     case S_CONFIG_SELECT_EDIT_WAIT:
       if (!pressed) {
+        Serial.print(F("configuring: "));
         switch (config_state) {
           case CONFIG_PALETTE0:
-            Serial.println(F("configuring palette A"));
             mode->cur_variant = 0;
             edit_color = 0;
+            printPaletteSlot();
             button_state = S_COLOR_SELECT_OFF;
             break;
           case CONFIG_PALETTE1:
-            Serial.println(F("configuring palette B"));
             mode->cur_variant = 1;
             edit_color = 0;
+            printPaletteSlot();
             button_state = S_COLOR_SELECT_OFF;
             break;
           case CONFIG_PRIME0:
-            Serial.println(F("configuring prime A"));
             mode->cur_variant = 0;
+            printPrime();
             button_state = S_PRIME_SELECT_OFF;
             break;
           case CONFIG_PRIME1:
-            Serial.println(F("configuring prime B"));
             mode->cur_variant = 1;
+            printPrime();
             button_state = S_PRIME_SELECT_OFF;
             break;
           case CONFIG_ACC_MODE:
-            Serial.println(F("configuring acc mode"));
+            printAccMode();
             button_state = S_ACC_MODE_SELECT_OFF;
             break;
           default: // case CONFIG_ACC_SENS:
-            Serial.println(F("configuring acc sensitivity"));
+            printAccSensitivity();
             button_state = S_ACC_SENS_SELECT_OFF;
             break;
         }
+        Serial.println();
       } else if (since_press > 1500) {
         Serial.print(F("will exit... "));
         flash(128, 128, 128, 5);
@@ -597,7 +580,8 @@ void handlePress(bool pressed) {
     case S_CONFIG_SELECT_EXIT_WAIT:
       if (!pressed) {
         mode->init();
-        Serial.println(F("exit config"));
+        Serial.println(F("exit config menu"));
+        transitioned = true;
         button_state = S_PLAY_OFF;
       }
       break;
@@ -616,7 +600,7 @@ void handlePress(bool pressed) {
       if (!pressed) {
         button_state = S_COLOR_SELECT_PRESS_WAIT;
       } else if (since_press > 1000) {
-        Serial.print(F("will select... "));
+        Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
         flash(64, 64, 64, 5); since_press = 500;
         button_state = S_COLOR_SELECT_SHADE_WAIT;
       }
@@ -624,28 +608,24 @@ void handlePress(bool pressed) {
 
     case S_COLOR_SELECT_PRESS_WAIT:
       if (pressed) {
-        mode->palette[mode->cur_variant][edit_color] = (mode->palette[mode->cur_variant][edit_color] - 1) % 63;
-        Serial.print(F("dec color ")); Serial.println(mode->palette[mode->cur_variant][edit_color] & 0b00111111);
+        mode->palette[mode->cur_variant][edit_color] = (mode->palette[mode->cur_variant][edit_color] + 62) % 63;
+        Serial.print(F("prev color: ")); printPaletteSlot(); Serial.println();
         button_state = S_COLOR_SELECT_RELEASE_WAIT;
       } else if (since_press > 350) {
         mode->palette[mode->cur_variant][edit_color] = (mode->palette[mode->cur_variant][edit_color] + 1) % 63;
-        Serial.print(F("inc color ")); Serial.println(mode->palette[mode->cur_variant][edit_color] & 0b00111111);
+        Serial.print(F("next color: ")); printPaletteSlot(); Serial.println();
         button_state = S_COLOR_SELECT_OFF;
       }
       break;
 
     case S_COLOR_SELECT_SHADE_WAIT:
       if (!pressed) {
-        Serial.print(F("now confirm mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" palette "));
-        if (mode->cur_variant == 0) { Serial.print(F("A color ")); }
-        else {                        Serial.print(F("B color ")); }
-        Serial.println(edit_color);
-
         mode->num_colors[mode->cur_variant] = edit_color + 1;
+        Serial.print(F("selected: ")); printPaletteSlot(); Serial.println();
         button_state = S_COLOR_CONFIRM_OFF;
       } else if (since_press > 1000) {
         mode->palette[mode->cur_variant][edit_color] += 0b01000000;
-        Serial.print(F("shade ")); Serial.println(mode->palette[mode->cur_variant][edit_color] >> 6);
+        Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
         flash(64, 64, 64, 5); since_press = 500;
       }
       break;
@@ -668,20 +648,17 @@ void handlePress(bool pressed) {
 
     case S_COLOR_CONFIRM_PRESSED:
       if (!pressed) {
-        Serial.print(F("confirm mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" palette "));
-        Serial.print(F("confirmed color ")); Serial.println(edit_color);
-        if (edit_color == PALETTE_SIZE - 1) {
+        edit_color++;
+        Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
+        if (edit_color == PALETTE_SIZE) {
           mode->save();
           mode->init();
-          Serial.print(F("saving mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" palette "));
-          if (mode->cur_variant == 0) { Serial.print(F("A with ")); }
-          else {                        Serial.print(F("B with ")); }
-          Serial.print(edit_color + 1); Serial.println(F(" colors"));
-
+          Serial.print(F("saving: ")); printPalette();
+          Serial.print(F(" with ")); Serial.print(mode->num_colors[mode->cur_variant]);
+          Serial.println(F(" slots"));
           flash(128, 128, 128, 5);
           button_state = S_PLAY_OFF;
         } else {
-          edit_color++;
           button_state = S_COLOR_SELECT_OFF;
         }
       } else if (since_press > 1000) {
@@ -693,16 +670,16 @@ void handlePress(bool pressed) {
 
     case S_COLOR_CONFIRM_REJECT_WAIT:
       if (!pressed) {
-        Serial.print(F("reject color ")); Serial.println(edit_color);
         if (edit_color == 0) {
-          Serial.println(F("chose color 0"));
+          Serial.println(F("reject and repick: "));
           button_state = S_COLOR_SELECT_OFF;
         } else {
           edit_color--;
-          Serial.print(F("confirm color ")); Serial.println(edit_color);
-          mode->num_colors[mode->cur_variant] = edit_color - 1;
+          mode->num_colors[mode->cur_variant]--;
+          Serial.print(F("reject and reconfirm: "));
           button_state = S_COLOR_CONFIRM_OFF;
         }
+        printPaletteSlot(); Serial.println();
       } else if (since_press > 1500) {
         Serial.print(F("will save... "));
         flash(128, 128, 128, 5);
@@ -712,12 +689,14 @@ void handlePress(bool pressed) {
 
     case S_COLOR_CONFIRM_EXIT_WAIT:
       if (!pressed) {
+        Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
+        mode->num_colors[mode->cur_variant] = edit_color + 1;
         mode->save();
         mode->init();
-        Serial.print(F("saving mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" palette "));
-        if (mode->cur_variant == 0) { Serial.print(F("A with ")); }
-        else {                        Serial.print(F("B with ")); }
-        Serial.print(edit_color + 1); Serial.println(F(" colors"));
+        Serial.print(F("saving: ")); printPalette();
+        Serial.print(F(" with ")); Serial.print(mode->num_colors[mode->cur_variant]);
+        Serial.println(F(" slots"));
+        transitioned = true;
         button_state = S_PLAY_OFF;
       }
       break;
@@ -736,11 +715,7 @@ void handlePress(bool pressed) {
     case S_PRIME_SELECT_PRESSED:
       if (!pressed) {
         mode->prime[mode->cur_variant] = (mode->prime[mode->cur_variant] + 1) % 16;
-        Serial.print(F("switching mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" prime "));
-        if (mode->cur_variant == 0) { Serial.print(F("A to ")); }
-        else {                        Serial.print(F("B to ")); }
-        printPrime(mode->prime[mode->cur_variant]); Serial.println();
-
+        Serial.print(F("changing: ")); printPrime(); Serial.println();
         mode->reset();
         button_state = S_PRIME_SELECT_OFF;
       } else if (since_press >= 1500) {
@@ -754,11 +729,8 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->save();
         mode->reset();
-        Serial.print(F("saving mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" prime "));
-        if (mode->cur_variant == 0) { Serial.print(F("A as ")); }
-        else {                        Serial.print(F("B as ")); }
-        printPrime(mode->prime[mode->cur_variant]); Serial.println();
-
+        Serial.print(F("saving: ")); printPrime(); Serial.println();
+        transitioned = true;
         button_state = S_PLAY_OFF;
       }
       break;
@@ -777,8 +749,7 @@ void handlePress(bool pressed) {
     case S_ACC_MODE_SELECT_PRESSED:
       if (!pressed) {
         mode->acc_mode = (mode->acc_mode + 1) % 5;
-        Serial.print(F("switched mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" acc mode to "));
-        printAccMode(mode->acc_mode); Serial.println();
+        Serial.print(F("switched: ")); printAccMode(); Serial.println();
         button_state = S_ACC_MODE_SELECT_OFF;
       } else if (since_press >= 1500) {
         Serial.print(F("will save..."));
@@ -791,8 +762,8 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->save();
         mode->init();
-        Serial.print(F("saved mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" acc mode as "));
-        printAccMode(mode->acc_mode); Serial.println();
+        Serial.print(F("saved: ")); printAccMode(); Serial.println();
+        transitioned = true;
         button_state = S_PLAY_OFF;
       }
       break;
@@ -811,8 +782,7 @@ void handlePress(bool pressed) {
     case S_ACC_SENS_SELECT_PRESSED:
       if (!pressed) {
         mode->acc_sensitivity = (mode->acc_sensitivity + 1) % 3;
-        Serial.print(F("switched mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" acc sensitivity to "));
-        printAccSensitivity(mode->acc_sensitivity); Serial.println();
+        Serial.print(F("switched: ")); printAccSensitivity(); Serial.println();
         button_state = S_ACC_SENS_SELECT_OFF;
       } else if (since_press >= 1500) {
         Serial.print(F("will save.. "));
@@ -825,8 +795,8 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->save();
         mode->init();
-        Serial.print(F("saved mode ")); Serial.print(bundles[cur_bundle][bundle_idx]); Serial.print(F(" acc sensitivity as "));
-        printAccSensitivity(mode->acc_sensitivity); Serial.println();
+        Serial.print(F("saved: ")); printAccSensitivity(); Serial.println();
+        transitioned = true;
         button_state = S_PLAY_OFF;
       }
       break;
@@ -835,6 +805,12 @@ void handlePress(bool pressed) {
     //******************************************************
     //** BUNDLE SELECT *************************************
     //******************************************************
+    case S_BUNDLE_SELECT_START:
+      if (!pressed) {
+        button_state = S_BUNDLE_SELECT_OFF;
+      }
+      break;
+
     case S_BUNDLE_SELECT_OFF:
       if (pressed) {
         since_press = 0;
@@ -846,7 +822,7 @@ void handlePress(bool pressed) {
       if (!pressed) {
         cur_bundle = (cur_bundle + 1) % NUM_BUNDLES;
         resetMode();
-        Serial.print(F("switched to bundle ")); Serial.println(cur_bundle);
+        Serial.print(F("switched: bundle ")); Serial.println(cur_bundle + 1);
         button_state = S_BUNDLE_SELECT_OFF;
       } else if (since_press >= 1500) {
         Serial.print(F("will select bundle... "));
@@ -857,7 +833,8 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_SELECT_WAIT:
       if (!pressed) {
-        Serial.print(F("selected bundle ")); Serial.println(cur_bundle);
+        Serial.print(F("select: bundle ")); Serial.println(cur_bundle + 1);
+        transitioned = true;
         button_state = S_PLAY_OFF;
       } else if (since_press >= 1500) {
         Serial.print(F("will edit bundle... "));
@@ -868,8 +845,9 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_SELECT_EDIT:
       if (!pressed) {
-        Serial.print(F("edit bundle ")); Serial.println(cur_bundle);
         resetMode();
+        Serial.println(F("edit"));
+        transitioned = true;
         button_state = S_BUNDLE_EDIT_OFF;
       }
       break;
@@ -879,6 +857,10 @@ void handlePress(bool pressed) {
     //** BUNDLE EDIT ***************************************
     //******************************************************
     case S_BUNDLE_EDIT_OFF:
+      if (transitioned) {
+        Serial.print(F("editing: ")); printCurMode(); Serial.println();
+        transitioned = false;
+      }
       if (pressed) {
         since_press = 0;
         button_state = S_BUNDLE_EDIT_PRESSED;
@@ -890,8 +872,7 @@ void handlePress(bool pressed) {
         bundles[cur_bundle][bundle_idx] = (bundles[cur_bundle][bundle_idx] + 1) % NUM_MODES;
         mode = modes[bundles[cur_bundle][bundle_idx]];
         mode->init();
-        Serial.print(F("switching bundle ")); Serial.print(cur_bundle); Serial.print(F(" slot "));
-        Serial.print(bundle_idx); Serial.print(F(" to ")); Serial.println(bundles[cur_bundle][bundle_idx]);
+        Serial.print(F("switched: ")); printCurMode(); Serial.println();
         button_state = S_BUNDLE_EDIT_OFF;
       } else if (since_press >= 1500) {
         Serial.print(F("will set... "));
@@ -902,18 +883,18 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_EDIT_WAIT:
       if (!pressed) {
-        Serial.print(F("set bundle ")); Serial.print(cur_bundle); Serial.print(F(" slot "));
-        Serial.print(bundle_idx); Serial.print(F(" to ")); Serial.println(bundles[cur_bundle][bundle_idx]);
         bundle_idx++;
+        Serial.print(F("set: ")); printCurMode(); Serial.println();
         if (bundle_idx == NUM_MODES) {
+          bundle_slots[cur_bundle] = bundle_idx;
           saveBundles();
           resetMode();
-          Serial.print(F("saved bundle ")); Serial.print(cur_bundle); Serial.print(F(". using "));
-          Serial.print(bundle_idx + 1); Serial.println(F(" slots"));
+          Serial.print(F("saved: ")); printCurBundle(); Serial.println();
           button_state = S_PLAY_OFF;
         } else {
           mode = modes[bundles[cur_bundle][bundle_idx]];
           mode->init();
+          transitioned = true;
           button_state = S_BUNDLE_EDIT_OFF;
         }
       } else if (since_press >= 1500) {
@@ -925,21 +906,162 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_EDIT_SAVE:
       if (!pressed) {
-        saveBundles();
         bundle_slots[cur_bundle] = bundle_idx + 1;
+        saveBundles();
         resetMode();
-        Serial.print(F("saved bundle ")); Serial.print(cur_bundle); Serial.print(F(". using "));
-        Serial.print(bundle_slots[cur_bundle]); Serial.println(F(" slots"));
+        Serial.print(F("saved: ")); printCurBundle(); Serial.println();
+        transitioned = true;
         button_state = S_PLAY_OFF;
       }
       break;
 
 
     default:
+      transitioned = true;
       button_state = S_PLAY_OFF;
       break;
   }
   since_press++;
+}
+
+void printConfigMode() {
+  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+  switch (config_state) {
+    case CONFIG_PALETTE0:
+      Serial.println(F(" configure palette A"));
+      break;
+    case CONFIG_PALETTE1:
+      Serial.println(F(" configure palette B"));
+      break;
+    case CONFIG_PRIME0:
+      Serial.println(F(" configure prime A"));
+      break;
+    case CONFIG_PRIME1:
+      Serial.println(F(" configure prime B"));
+      break;
+    case CONFIG_ACC_MODE:
+      Serial.println(F(" configure acc mode"));
+      break;
+    default: // case CONFIG_ACC_SENS:
+      Serial.println(F(" configure acc sensitivity"));
+      break;
+  }
+}
+
+void printCurBundle() {
+  Serial.print(F("bundle ")); Serial.print(cur_bundle + 1);
+  Serial.print(F(" slots-")); Serial.print(bundle_slots[cur_bundle]);
+}
+
+void printCurMode() {
+  Serial.print(F("bundle ")); Serial.print(cur_bundle + 1);
+  Serial.print(F(" slot ")); Serial.print(bundle_idx + 1);
+  Serial.print(F(": mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+}
+
+void printPalette() {
+  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+  if (mode->cur_variant == 0) { Serial.print(F(" palette A")); }
+  else {                        Serial.print(F(" palette B")); }
+}
+
+void printPaletteSlot() {
+  printPalette();
+  Serial.print(F(" slot ")); Serial.print(edit_color + 1);
+  Serial.print(F(": i-")); Serial.print(mode->palette[mode->cur_variant][edit_color] & 0b00111111, HEX);
+  Serial.print(F(" s-")); Serial.print(mode->palette[mode->cur_variant][edit_color] >> 6);
+}
+
+void printAccMode() {
+  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx]);
+  switch (mode->acc_mode) {
+    case AMODE_SPEED:
+      Serial.print(F("accel mode: SPEED"));
+      break;
+    case AMODE_TILTX:
+      Serial.print(F("accel mode: TILTX"));
+      break;
+    case AMODE_TILTY:
+      Serial.print(F("accel mode: TILTY"));
+      break;
+    case AMODE_FLIPZ:
+      Serial.print(F("accel mode: FLIPZ"));
+      break;
+    default: // case AMODE_OFF
+      Serial.print(F("accel mode: OFF"));
+      break;
+  }
+}
+
+void printAccSensitivity() {
+  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx]);
+  switch (mode->acc_sensitivity) {
+    case ASENS_LOW:
+      Serial.print(F("accel sensitivity: LOW"));
+      break;
+    case ASENS_MEDIUM:
+      Serial.print(F("accel sensitivity: MEDIUM"));
+      break;
+    default: // case ASENS_HIGH:
+      Serial.print(F("accel sensitivity: HIGH"));
+      break;
+  }
+}
+
+void printPrime() {
+  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+  if (mode->cur_variant == 0) { Serial.print(F(" prime A: ")); }
+  else {                        Serial.print(F(" prime B: ")); }
+  switch (mode->prime[mode->cur_variant]) {
+    case PRIME_STROBE:
+      Serial.print(F("STROBE"));
+      break;
+    case PRIME_HYPER:
+      Serial.print(F("HYPER STROBE"));
+      break;
+    case PRIME_DOPS:
+      Serial.print(F("DOPS"));
+      break;
+    case PRIME_STROBIE:
+      Serial.print(F("STROBIE"));
+      break;
+    case PRIME_PULSE:
+      Serial.print(F("PULSE"));
+      break;
+    case PRIME_SEIZURE:
+      Serial.print(F("SEIZURE STROBE"));
+      break;
+    case PRIME_TRACER:
+      Serial.print(F("TRACER"));
+      break;
+    case PRIME_DASHDOPS:
+      Serial.print(F("DASH DOPS"));
+      break;
+    case PRIME_BLINKE:
+      Serial.print(F("BLINK-E"));
+      break;
+    case PRIME_EDGE:
+      Serial.print(F("EDGE"));
+      break;
+    case PRIME_LEGO:
+      Serial.print(F("LEGO"));
+      break;
+    case PRIME_CHASE:
+      Serial.print(F("CHASE"));
+      break;
+    case PRIME_MORPH:
+      Serial.print(F("MORPH STROBE"));
+      break;
+    case PRIME_RIBBON:
+      Serial.print(F("RIBBON"));
+      break;
+    case PRIME_RAVIN:
+      Serial.print(F("RAVIN STROBE"));
+      break;
+    default: // case PRIME_CANDY:
+      Serial.print(F("CANDY STROBE"));
+      break;
+  }
 }
 
 
@@ -972,22 +1094,26 @@ void enterSleep() {
       limiter = 0;
       held_count++;
     }
+    if (held_count > 1500) {
+      break;
+    }
   }
 
   if (held_count > 1500) {
     Serial.println(F("select bundle"));
     flash(0, 0, 128, 5);
-    button_state = S_BUNDLE_SELECT_OFF;
+    button_state = S_BUNDLE_SELECT_START;
   } else {
-    Serial.println(F("play"));
     button_state = S_PLAY_OFF;
   }
 
   digitalWrite(PIN_LDO, HIGH);
   accInit();
   resetMode();
+  transitioned = true;
   conjure = conjure_toggle = false;
   delay(4000);
+
 }
 
 void pushInterrupt() {
