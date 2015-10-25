@@ -21,32 +21,32 @@ const PROGMEM uint8_t color_palette[64][3] = {
   // Red - green
   {255,   0,   0},  // 0x08
   {252,  63,   0},  // 0x09
-  {248, 127,   0},  // 0x0a
-  {244, 191,   0},  // 0x0b
-  {240, 240,   0},  // 0x0c
-  {191, 244,   0},  // 0x0d
-  {127, 248,   0},  // 0x0e
-  { 63, 252,   0},  // 0x0f
+  {248, 127,   0},  // 0x0A
+  {244, 191,   0},  // 0x0B
+  {240, 240,   0},  // 0x0C
+  {191, 244,   0},  // 0x0D
+  {127, 248,   0},  // 0x0E
+  { 63, 252,   0},  // 0x0F
 
   // Green - blue
-  {  0,   0, 255},  // 0x10
-  {  0,  63, 252},  // 0x11
-  {  0, 127, 248},  // 0x12
-  {  0, 191, 244},  // 0x13
+  {  0, 255,   0},  // 0x10
+  {  0, 252,  63},  // 0x11
+  {  0, 248, 127},  // 0x12
+  {  0, 244, 191},  // 0x13
   {  0, 240, 240},  // 0x14
-  {  0, 244, 191},  // 0x15
-  {  0, 248, 127},  // 0x16
-  {  0, 252,  63},  // 0x17
+  {  0, 191, 244},  // 0x15
+  {  0, 127, 248},  // 0x16
+  {  0,  63, 252},  // 0x17
 
   // Blue - red
   {  0,   0, 255},  // 0x18
   { 63,   0, 252},  // 0x19
-  {127,   0, 248},  // 0x1a
-  {191,   0, 244},  // 0x1b
-  {240,   0, 240},  // 0x1c
-  {244,   0, 191},  // 0x1d
-  {248,   0, 127},  // 0x1e
-  {252,   0,  63},  // 0x1f
+  {127,   0, 248},  // 0x1A
+  {191,   0, 244},  // 0x1B
+  {240,   0, 240},  // 0x1C
+  {244,   0, 191},  // 0x1D
+  {248,   0, 127},  // 0x1E
+  {252,   0,  63},  // 0x1F
 
   // Red - green saturated
   {224,  64,  64},  // 0x20
@@ -61,12 +61,12 @@ const PROGMEM uint8_t color_palette[64][3] = {
   // Green - blue saturated
   { 64, 224,  64},  // 0x28
   { 64, 216,  96},  // 0x29
-  { 64, 208, 128},  // 0x2a
-  { 64, 200, 160},  // 0x2b
-  { 64, 192, 192},  // 0x2c
-  { 64, 160, 200},  // 0x2d
-  { 64, 128, 208},  // 0x2e
-  { 64, 104, 216},  // 0x2f
+  { 64, 208, 128},  // 0x2A
+  { 64, 200, 160},  // 0x2B
+  { 64, 192, 192},  // 0x2C
+  { 64, 160, 200},  // 0x2D
+  { 64, 128, 208},  // 0x2E
+  { 64, 104, 216},  // 0x2F
 
   // Blue - red saturated
   { 64,  64, 224},  // 0x30
@@ -81,11 +81,11 @@ const PROGMEM uint8_t color_palette[64][3] = {
   // Dim colors
   { 32,  32,  32},  // 0x38
   { 48,   0,   0},  // 0x39
-  { 40,  40,   0},  // 0x3a
-  {  0,  48,   0},  // 0x3b
-  {  0,  40,  40},  // 0x3c
-  {  0,   0,  48},  // 0x3d
-  { 40,   0,  40},  // 0x3e
+  { 40,  40,   0},  // 0x3A
+  {  0,  48,   0},  // 0x3B
+  {  0,  40,  40},  // 0x3C
+  {  0,   0,  48},  // 0x3D
+  { 40,   0,  40},  // 0x3E
 };
 
 void unpackColor(uint8_t color, uint8_t *r, uint8_t *g, uint8_t *b) {
@@ -216,17 +216,17 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       break;
 
     case PRIME_PULSE:
-      if (tick >= 50 + 25) {
+      if (tick >= 100 + 25) {
         tick = 0;
         cur_color = (cur_color + 1) % num_colors[cur_variant];
       }
 
-      if (tick < 25) {
+      if (tick < 50) {
         unpackColor(palette[cur_variant][cur_color], &r0, &g0, &b0);
-        morphColor(tick, 25, 0, 0, 0, r0, g0, b0, &_r, &_g, &_b);
-      } else if (tick < 50) {
+        morphColor(tick, 50, 0, 0, 0, r0, g0, b0, &_r, &_g, &_b);
+      } else if (tick < 100) {
         unpackColor(palette[cur_variant][cur_color], &r0, &g0, &b0);
-        morphColor(tick - 25, 25, r0, g0, b0, 0, 0, 0, &_r, &_g, &_b);
+        morphColor(tick - 50, 50, r0, g0, b0, 0, 0, 0, &_r, &_g, &_b);
       } else {
         _r = 0; _g = 0; _b = 0;
       }
@@ -260,15 +260,15 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       break;
 
     case PRIME_DASHDOPS:
-      if (tick >= ((num_colors[cur_variant] - 1) * 7) + ((1 + 10) * 7) + 10) {
+      if (tick >= ((num_colors[cur_variant] - 1) * 11) + ((1 + 10) * 7) + 10) {
         tick = 0;
       }
 
-      if (tick < (num_colors[cur_variant] - 1) * 7) {
-        counter0 = (tick / 7) + 1;
+      if (tick < (num_colors[cur_variant] - 1) * 11) {
+        counter0 = (tick / 11) + 1;
         unpackColor(palette[cur_variant][counter0], &_r, &_g, &_b);
       } else {
-        counter0 = tick - ((num_colors[cur_variant] - 1) * 7);
+        counter0 = tick - ((num_colors[cur_variant] - 1) * 11);
         if (counter0 % 11 == 10) {
           unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
         } else {
@@ -290,18 +290,17 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       break;
 
     case PRIME_EDGE:
-      if (counter0 == 0) counter0 = (num_colors[cur_variant] - 1) * 2;
-      if (tick >= (counter0 * 2) + 5 + 20) {
+      if (counter0 == 0) counter0 = num_colors[cur_variant] - 1;
+      if (tick >= (counter0 * 4) + 5 + 20) {
         tick = 0;
       }
 
-      counter1 = tick / 2;
-      if (counter1 < counter0) {
-        unpackColor(palette[cur_variant][counter0 - counter1], &_r, &_g, &_b);
-      } else if (counter1 < counter0 + 5) {
+      if (tick < counter0 * 2) {
+        unpackColor(palette[cur_variant][counter0 - (tick / 2)], &_r, &_g, &_b);
+      } else if (tick < (counter0 * 2) + 5) {
         unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
-      } else if (counter1 < (counter0 * 2) + 5) {
-        unpackColor(palette[cur_variant][(counter1 - (counter0 + 5)) + 1], &_r, &_g, &_b);
+      } else if (tick < (counter0 * 4) + 5) {
+        unpackColor(palette[cur_variant][((tick - ((counter0 * 2) + 5)) / 2) + 1], &_r, &_g, &_b);
       } else {
         _r = 0; _g = 0; _b = 0;
       }
@@ -417,7 +416,7 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         if (counter0 >= 3) {
           counter0 = 0;
           counter1++;
-          if (counter1 >= 3) {
+          if (counter1 >= 8) {
             counter1 = 0;
             cur_color = (cur_color + 1) % num_colors[cur_variant];
           }
@@ -456,38 +455,40 @@ void Mode::reset() {
 }
 
 void Mode::updateAcc(float fxg, float fyg, float fzg) {
-  float pitch;
+  float pitch, level;
+  uint8_t thresh;
 
   if (acc_counter < 0) acc_counter = 0;
 
   switch (acc_mode) {
     case AMODE_SPEED:
-      pitch = max(max(abs(fxg), abs(fyg)), abs(fzg));
+      if (acc_sensitivity == ASENS_LOW) {
+        level = 2.0; thresh = 25;
+      } else if (acc_sensitivity == ASENS_MEDIUM) {
+        level = 1.7; thresh = 25;
+      } else if (acc_sensitivity == ASENS_HIGH) {
+        level = 1.0; thresh = 10;
+      }
+
+      pitch = abs(fxg) + abs(fyg) + abs(fzg) - 1.0;
+
       if (cur_variant == 0) {
-        if (pitch > 1.5) {
-          acc_counter += 2;
-        } else if (pitch > 1.35) {
+        if (pitch > level) {
           acc_counter++;
         } else {
-          acc_counter--;
+          acc_counter = 0;
         }
-
-        if (acc_counter > 15 << acc_sensitivity) {
+        if (acc_counter > thresh) {
           cur_variant = 1;
+          acc_counter = 25;
         }
       } else {
-        if (pitch > 1.35) {
-          acc_counter += 2;
-        } else if (pitch > 1.1) {
-          acc_counter++;
+        if (pitch > 1.0) {
+          acc_counter = 25;
         } else {
           acc_counter--;
         }
-        if (acc_counter <= 0) {
-          cur_variant = 0;
-        } else if (acc_counter > 25 << acc_sensitivity) {
-          acc_counter = 25 << acc_sensitivity;
-        }
+        if (acc_counter <= 0) cur_variant = 0;
       }
       break;
 
