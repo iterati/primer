@@ -379,6 +379,7 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
     case PRIME_COMET:
       if (tick >= 15 + 8) {
         tick = 0;
+        counter0 += (counter1 == 0) ? 1 : -1;
         if (counter0 <= 0) {
           counter1 = 0;
           cur_color = (cur_color + 1) % num_colors;
@@ -386,8 +387,6 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
           counter1 = 1;
         }
       }
-
-      counter0 += (counter1 == 0) ? 1 : -1;
 
       if (tick <= counter0) {
         unpackColor(palette[cur_color], &_r, &_g, &_b);
