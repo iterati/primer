@@ -1069,8 +1069,8 @@ void printPrime() {
     case PRIME_RIBBON:
       Serial.print(F("RIBBON"));
       break;
-    case PRIME_RAVIN:
-      Serial.print(F("RAVIN STROBE"));
+    case PRIME_COMET:
+      Serial.print(F("COMET STROBE"));
       break;
     default: // case PRIME_CANDY:
       Serial.print(F("CANDY STROBE"));

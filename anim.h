@@ -29,7 +29,7 @@
 #define PRIME_CHASE       11
 #define PRIME_MORPH       12
 #define PRIME_RIBBON      13
-#define PRIME_RAVIN       14
+#define PRIME_COMET       14
 #define PRIME_CANDY       15
 
 

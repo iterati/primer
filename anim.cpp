@@ -376,34 +376,21 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
       unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
       break;
 
-    case PRIME_RAVIN:
-      if (tick >= 5 + 8) {
+    case PRIME_COMET:
+      if (tick >= 15 + 8) {
         tick = 0;
-        if (counter1 == 0) {
-          counter0++;
-          if (counter0 >= num_colors[cur_variant]) {
-            counter1 = 1;
-            if (num_colors[cur_variant] == 1) {
-              counter0 = 0;
-            } else {
-              counter0 = num_colors[cur_variant] - 2;
-            }
-          }
-        } else {
-          counter0--;
-          if (counter0 < 0) {
-            counter1 = 0;
-            if (num_colors[cur_variant] == 1) {
-              counter0 = 0;
-            } else {
-              counter0 = 1;
-            }
-          }
+        if (counter0 <= 0) {
+          counter1 = 0;
+          cur_color = (cur_color + 1) % num_colors;
+        } else if (counter0 >= 15) {
+          counter1 = 1;
         }
       }
 
-      if (tick < 5) {
-        unpackColor(palette[cur_variant][counter0], &_r, &_g, &_b);
+      counter0 += (counter1 == 0) ? 1 : -1;
+
+      if (tick <= counter0) {
+        unpackColor(palette[cur_color], &_r, &_g, &_b);
       } else {
         _r = 0; _g = 0; _b = 0;
       }
