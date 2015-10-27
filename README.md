@@ -174,15 +174,38 @@ These images represent the default mode set of animations. 1 pixel represents 0.
 
 **NOTE**: Colors displayed on the monitor differ from colors displayed on the light. These colors are approximations. Anything grey tends more to white than grey when shown on the LED.
 
+### Mode 1
 ![Mode 1](pngs/mode01.png)
+
+### Mode 2
 ![Mode 2](pngs/mode02.png)
+
+### Mode 3
 ![Mode 3](pngs/mode03.png)
+
+### Mode 4
 ![Mode 4](pngs/mode04.png)
+
+### Mode 5
 ![Mode 5](pngs/mode05.png)
+
+### Mode 6
 ![Mode 6](pngs/mode06.png)
+
+### Mode 7
 ![Mode 7](pngs/mode07.png)
+
+### Mode 8
 ![Mode 8](pngs/mode08.png)
+
+### Mode 9
 ![Mode 9](pngs/mode09.png)
+
+### Mode 10
 ![Mode 10](pngs/mode10.png)
+
+### Mode 11
 ![Mode 11](pngs/mode11.png)
+
+### Mode 12
 ![Mode 12](pngs/mode12.png)
