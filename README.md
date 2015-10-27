@@ -109,31 +109,80 @@ Primer is the first OSM firmware fully customizable on-chip.
 * Hold 1.5s - Accept and save. Go to **Play**. Flashes white.
 
 
+## Palette
+
+**NOTE**: Colors displayed on the monitor differ from colors displayed on the light. These colors are approximations. Anything grey tends more to white than grey when shown on the LED.
+
+![Palette](pngs/palette.png)
+
 ## Animations
 
-* Strobe - 5ms/8ms Strobe
-* Hyper - 17ms/17ms Strobe
-* Dops - 1ms/10ms Strobe
-* Strobie - 3ms/23ms Strobe
-* Pulse - 50ms Fade In and Out/25ms Off
-* Seizure - 5ms Fade In/95ms Off
-* Tracer - 3ms Color/23ms Color 1
-* Dash Dops
-  * 7ms Per Color for Color 2+
-  * 7 1ms/10ms Strobes of Color 1
-* Blink-E - 5ms Per Color/50ms Off
-* Edge 
-  * 2ms Per Color for Last Color to Color 2
-  * 5ms Color 1
-  * 2ms Per Color for Color 2 to Last Color
-* Lego - 2, 8, or 16ms/8ms Random Strobe
-* Chase 
-  * 50ms Color A/10ms Off
-  * 10ms Color B/10ms Off/30ms Color A/10ms Off
-  * 20ms Color B/10ms Off/20ms Color A/10ms Off
-  * 30ms Color B/10ms Off/10ms Color A/10ms Off
-  * Repeat with B and next color...
-* Morph - 17ms/17ms Strobe Where A Morphs to B Over 4 Strobes
-* Ribbon - 11ms Per Color
-* Ravin - 5ms/8ms ABCBA Strobe (Color 1 to Last to 1 to Last...)
-* Candy - 5ms/8ms Strobe of First 3 Colors For 3 Cycles, Then Drop First Color And Add Next
+These images represent the default mode set of animations. 1 pixel represents 0.5s of animation.
+
+**NOTE**: Colors displayed on the monitor differ from colors displayed on the light. These colors are approximations. Anything grey tends more to white than grey when shown on the LED.
+
+### Strobe
+![Strobe](pngs/anim01.png)
+
+### Hyper
+![Hyper](pngs/anim02.png)
+
+### Dops
+![Hyper](pngs/anim03.png)
+
+### Strobie
+![Strobie](pngs/anim04.png)
+
+### Pulse
+![Pulse](pngs/anim05.png)
+
+### Seizure
+![Seizure](pngs/anim06.png)
+
+### Tracer
+![Tracer](pngs/anim07.png)
+
+### Dash Dops
+![Dash Dops](pngs/anim08.png)
+
+### Blink-E
+![Blink-E](pngs/anim09.png)
+
+### Edge
+![Edge](pngs/anim10.png)
+
+### Lego
+![Lego](pngs/anim11.png)
+
+### Chase
+![Chase](pngs/anim12.png)
+
+### Morph
+![Morph](pngs/anim13.png)
+
+### Ribbon
+![Ribbon](pngs/anim14.png)
+
+### Comet
+![Comet](pngs/anim15.png)
+
+### Candy
+![Candy](pngs/anim16.png)
+
+
+## Default Modes
+
+**NOTE**: Colors displayed on the monitor differ from colors displayed on the light. These colors are approximations. Anything grey tends more to white than grey when shown on the LED.
+
+![Mode 1](pngs/mode01.png)
+![Mode 2](pngs/mode02.png)
+![Mode 3](pngs/mode03.png)
+![Mode 4](pngs/mode04.png)
+![Mode 5](pngs/mode05.png)
+![Mode 6](pngs/mode06.png)
+![Mode 7](pngs/mode07.png)
+![Mode 8](pngs/mode08.png)
+![Mode 9](pngs/mode09.png)
+![Mode 10](pngs/mode10.png)
+![Mode 11](pngs/mode11.png)
+![Mode 12](pngs/mode12.png)
