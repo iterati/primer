@@ -382,14 +382,14 @@ void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         counter0 += (counter1 == 0) ? 1 : -1;
         if (counter0 <= 0) {
           counter1 = 0;
-          cur_color = (cur_color + 1) % num_colors;
+          cur_color = (cur_color + 1) % num_colors[cur_variant];
         } else if (counter0 >= 15) {
           counter1 = 1;
         }
       }
 
       if (tick <= counter0) {
-        unpackColor(palette[cur_color], &_r, &_g, &_b);
+        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
       } else {
         _r = 0; _g = 0; _b = 0;
       }

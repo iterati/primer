@@ -34,14 +34,13 @@ SOFTWARE.
 
 #define NUM_MODES 12
 #define NUM_BUNDLES 4
-const uint8_t current_version = 101;
+const uint8_t current_version = 102;
 
 // MODE CONFIGURATION
 // Mode mode# = Mode(MEMORY_ADDRESS, AMODE_WHAT, ASENS_WHAT,
 //   PRIMEA, NUM_COLORS, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8, COLOR9, COLOR10, COLOR11, COLOR12,
 //   PRIMEB, NUM_COLORS, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, COLOR7, COLOR8, COLOR9, COLOR10, COLOR11, COLOR12);
 
-// RGBleed
 Mode mode0 = Mode(520,
   AMODE_SPEED, ASENS_MEDIUM,
   PRIME_BLINKE,     7, 0x46, 0x7E, 0x7D, 0x7C, 0x7B, 0x7A, 0x79, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -87,33 +86,32 @@ Mode mode8 = Mode(760,
   PRIME_PULSE,      6, 0x56, 0x00, 0x58, 0x00, 0x5A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   PRIME_PULSE,      6, 0x5E, 0x00, 0x48, 0x00, 0x4A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-// TODO modes
 Mode mode9 = Mode(790,
   AMODE_FLIPZ, ASENS_HIGH,
   PRIME_STROBE,     3, 0x58, 0x5A, 0x5C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   PRIME_STROBE,     3, 0x48, 0x5E, 0x5C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode modeA = Mode(820,
+Mode mode10 = Mode(820,
   AMODE_FLIPZ, ASENS_HIGH,
   PRIME_STROBE,     3, 0x50, 0x52, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   PRIME_STROBE,     3, 0x58, 0x56, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode modeB = Mode(850,
+Mode mode11 = Mode(850,
   AMODE_FLIPZ, ASENS_HIGH,
   PRIME_STROBE,     3, 0x48, 0x4A, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   PRIME_STROBE,     3, 0x50, 0x4E, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-Mode *modes[12] = {&mode0, &mode1, &mode2, &mode3, &mode4, &mode5, &mode6, &mode7, &mode8, &mode9, &modeA, &modeB};
+Mode *modes[12] = {&mode0, &mode1, &mode2, &mode3, &mode4, &mode5, &mode6, &mode7, &mode8, &mode9, &mode10, &mode11};
 
 Mode *mode;
 
 uint8_t bundles[NUM_BUNDLES][NUM_MODES] = {
-  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  0,  0,  0},
-  { 1,  0,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
+  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
+  { 1,  2,  0,  3,  4,  5,  6,  7,  8,  0,  0,  0},
   { 6,  7,  8,  9, 10, 11,  0,  0,  0,  0,  0,  0},
   { 2,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0},
 };
-uint8_t bundle_slots[NUM_BUNDLES] = {9, 12, 6, 3};
+uint8_t bundle_slots[NUM_BUNDLES] = {12, 9, 6, 3};
 uint8_t cur_bundle = 0;
 uint8_t bundle_idx = 0;
 
