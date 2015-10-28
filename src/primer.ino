@@ -131,7 +131,7 @@ bool conjure_toggle = false;
 
 bool bpm_enabled = false;
 uint32_t bpm_tracker = 0;
-uint32_t bpm_trigger = (60 * 2000) / 120.0;
+uint32_t bpm_trigger = 32000;
 
 const PROGMEM uint8_t gamma_table[256] = {
     0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,
@@ -320,13 +320,12 @@ void loop() {
   }
 
   if (button_state < 10 && bpm_enabled) {
-    if (bpm_tracker > bpm_trigger) {
-      incMode();
-    }
-    bpm_tracker++;
+    incMode();
+    Serial.print(F("bpm next mode: ")); printCurMode(); Serial.println();
   }
 
   writeFrame(r, g, b);
+  bpm_tracker++;
 }
 
 void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
@@ -478,7 +477,9 @@ void handlePress(bool pressed) {
     case S_PLAY_OFF:
       if (transitioned) {
         transitioned = false;
-        Serial.print(F("playing: ")); printCurMode(); Serial.println();
+        if (bpm_enabled) { Serial.print(F("playing bpm: ")); }
+        else {             Serial.print(F("playing: ")); }
+        printCurMode(); Serial.println();
       }
       if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
@@ -856,6 +857,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_BUNDLE_SELECT_START:
       if (!pressed) {
+        bpm_enabled = false;
         since_press = 0;
         button_state = S_BUNDLE_SELECT_OFF;
       }
@@ -873,6 +875,7 @@ void handlePress(bool pressed) {
         cur_bundle = (cur_bundle + 1) % NUM_BUNDLES;
         resetMode();
         Serial.print(F("switched: bundle ")); Serial.println(cur_bundle + 1);
+        resetMode();
         since_press = 0;
         button_state = S_BUNDLE_SELECT_OFF;
       } else if (since_press >= LONG_HOLD) {
@@ -890,7 +893,7 @@ void handlePress(bool pressed) {
         button_state = S_PLAY_OFF;
       } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will edit bundle... "));
-        flash(128, 128, 0, 5);
+        flash(128, 128, 0, 5); since_press = FLASH_TIME;
         button_state = S_BUNDLE_SELECT_EDIT;
       }
       break;
