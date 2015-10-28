@@ -129,6 +129,10 @@ bool transitioned = true;
 bool conjure = false;
 bool conjure_toggle = false;
 
+bool bpm_enabled = false;
+uint32_t bpm_tracker = 0;
+uint32_t bpm_trigger = (60 * 2000) / 120.0;
+
 const PROGMEM uint8_t gamma_table[256] = {
     0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,
     2,   2,   2,   3,   3,   3,   3,   3,   3,   4,   4,   4,   4,   4,   5,   5,
@@ -166,6 +170,7 @@ const PROGMEM uint8_t gamma_table[256] = {
 #define CONFIG_ACC_SENS    5
 
 #define BUNDLE_EEPROM_ADDR 900
+#define FRAME_TICKS 32000
 
 void saveBundles() {
   for (uint8_t b = 0; b < NUM_BUNDLES; b++) {
@@ -314,6 +319,13 @@ void loop() {
     r = 0; g = 0; b = 0;
   }
 
+  if (button_state < 10 && bpm_enabled) {
+    if (bpm_tracker > bpm_trigger) {
+      incMode();
+    }
+    bpm_tracker++;
+  }
+
   writeFrame(r, g, b);
 }
 
@@ -330,7 +342,7 @@ void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
 }
 
 void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
-  while (limiter < 32000) {}
+  while (limiter < FRAME_TICKS) {}
   limiter = 0;
 
   analogWrite(PIN_R, pgm_read_byte(&gamma_table[r]));
@@ -341,6 +353,7 @@ void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
 void resetMode() {
   bundle_idx = 0;
   mode = modes[bundles[cur_bundle][bundle_idx]];
+  bpm_tracker = 0;
   mode->init();
   fxg = fyg = fzg = 0.0;
 }
@@ -348,6 +361,7 @@ void resetMode() {
 void incMode() {
   bundle_idx = (bundle_idx + 1) % bundle_slots[cur_bundle];
   mode = modes[bundles[cur_bundle][bundle_idx]];
+  bpm_tracker = 0;
   mode->init();
   fxg = fyg = fzg = 0.0;
 }
@@ -405,6 +419,11 @@ void accUpdate() {
 // ********************************************************************
 // **** BUTTON CODE ***************************************************
 // ********************************************************************
+#define PRESS_DELAY 100   // 0.05s
+#define SHORT_HOLD  2000  // 1.0s
+#define LONG_HOLD   3000  // 1.5s
+#define FLASH_TIME  1000  // 0.5s
+
 #define S_PLAY_OFF                    0
 #define S_PLAY_PRESSED                1
 #define S_PLAY_SLEEP_WAIT             2
@@ -439,11 +458,12 @@ void accUpdate() {
 #define S_ACC_SENS_SELECT_PRESSED     61
 #define S_ACC_SENS_SELECT_WAIT        62
 
-#define S_BUNDLE_SELECT_OFF           70
-#define S_BUNDLE_SELECT_PRESSED       71
-#define S_BUNDLE_SELECT_WAIT          72
-#define S_BUNDLE_SELECT_EDIT          73
-#define S_BUNDLE_SELECT_START         74
+#define S_BUNDLE_SELECT_START         70
+#define S_BUNDLE_SELECT_OFF           71
+#define S_BUNDLE_SELECT_PRESSED       72
+#define S_BUNDLE_SELECT_WAIT          73
+#define S_BUNDLE_SELECT_EDIT          74
+#define S_BUNDLE_SELECT_BPM           75
 
 #define S_BUNDLE_EDIT_OFF             80
 #define S_BUNDLE_EDIT_PRESSED         81
@@ -460,7 +480,7 @@ void handlePress(bool pressed) {
         transitioned = false;
         Serial.print(F("playing: ")); printCurMode(); Serial.println();
       }
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_PLAY_PRESSED;
       }
@@ -476,10 +496,11 @@ void handlePress(bool pressed) {
           incMode();
           transitioned = true;
         }
+        since_press = 0;
         button_state = S_PLAY_OFF;
-      } else if (since_press > 2000) {
+      } else if (since_press > SHORT_HOLD) {
         Serial.print(F("will sleep... "));
-        flash(128, 128, 128, 5); since_press = 1000;
+        flash(128, 128, 128, 5); since_press = FLASH_TIME;
         button_state = S_PLAY_SLEEP_WAIT;
       }
       break;
@@ -488,9 +509,9 @@ void handlePress(bool pressed) {
       if (!pressed) {
         Serial.println(F("sleeping"));
         enterSleep();
-      } else if (since_press > 3000) {
+      } else if (since_press > LONG_HOLD) {
         Serial.print(F("toggle conjure... "));
-        flash(0, 0, 128, 5); since_press = 1000;
+        flash(0, 0, 128, 5); since_press = FLASH_TIME;
         button_state = S_PLAY_CONJURE_WAIT;
       }
       break;
@@ -501,8 +522,9 @@ void handlePress(bool pressed) {
         conjure_toggle = false;
         if (conjure) { Serial.println(F("conjure on")); }
         else {         Serial.println(F("conjure off")); }
+        since_press = 0;
         button_state = S_PLAY_OFF;
-      } else if (since_press > 3000) {
+      } else if (since_press > LONG_HOLD) {
         Serial.print(F("config... "));
         flash(128, 128, 0, 5);
         button_state = S_PLAY_CONFIG_WAIT;
@@ -513,6 +535,7 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->init();
         Serial.print(F("enter config menu: mode ")); Serial.println(bundles[cur_bundle][bundle_idx] + 1);
+        since_press = 0;
         transitioned = true;
         config_state = CONFIG_PALETTE0;
         button_state = S_CONFIG_SELECT_OFF;
@@ -527,7 +550,7 @@ void handlePress(bool pressed) {
         transitioned = false;
         printConfigMode();
       }
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_CONFIG_SELECT_PRESSED;
       }
@@ -536,17 +559,19 @@ void handlePress(bool pressed) {
     case S_CONFIG_SELECT_PRESSED:
       if (!pressed) {
         config_state = (config_state + 1) % 6;
+        since_press = 0;
         transitioned = true;
         button_state = S_CONFIG_SELECT_OFF;
-      } else if (since_press > 2000) {
+      } else if (since_press > SHORT_HOLD) {
         Serial.print(F("will enter config... "));
-        flash(128, 128, 0, 5); since_press = 1000;
+        flash(128, 128, 0, 5); since_press = FLASH_TIME;
         button_state = S_CONFIG_SELECT_EDIT_WAIT;
       }
       break;
 
     case S_CONFIG_SELECT_EDIT_WAIT:
       if (!pressed) {
+        since_press = 0;
         Serial.print(F("configuring: "));
         switch (config_state) {
           case CONFIG_PALETTE0:
@@ -581,7 +606,7 @@ void handlePress(bool pressed) {
             break;
         }
         Serial.println();
-      } else if (since_press > 3000) {
+      } else if (since_press > LONG_HOLD) {
         Serial.print(F("will exit... "));
         flash(128, 128, 128, 5);
         button_state = S_CONFIG_SELECT_EXIT_WAIT;
@@ -592,6 +617,7 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->init();
         Serial.println(F("exit config menu"));
+        since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
       }
@@ -601,7 +627,7 @@ void handlePress(bool pressed) {
     //** COLOR SELECT **************************************
     //******************************************************
     case S_COLOR_SELECT_OFF:
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_COLOR_SELECT_PRESSED;
       }
@@ -609,10 +635,11 @@ void handlePress(bool pressed) {
 
     case S_COLOR_SELECT_PRESSED:
       if (!pressed) {
+        since_press = 0;
         button_state = S_COLOR_SELECT_PRESS_WAIT;
-      } else if (since_press > 2000) {
+      } else if (since_press > SHORT_HOLD) {
         Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
-        flash(64, 64, 64, 5); since_press = 1000;
+        flash(64, 64, 64, 5); since_press = FLASH_TIME;
         button_state = S_COLOR_SELECT_SHADE_WAIT;
       }
       break;
@@ -633,16 +660,18 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->num_colors[mode->cur_variant] = edit_color + 1;
         Serial.print(F("selected: ")); printPaletteSlot(); Serial.println();
+        since_press = 0;
         button_state = S_COLOR_CONFIRM_OFF;
-      } else if (since_press > 2000) {
+      } else if (since_press > SHORT_HOLD) {
         mode->palette[mode->cur_variant][edit_color] += 0b01000000;
         Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
-        flash(64, 64, 64, 5); since_press = 1000;
+        flash(64, 64, 64, 5); since_press = FLASH_TIME;
       }
       break;
 
     case S_COLOR_SELECT_RELEASE_WAIT:
       if (!pressed) {
+        since_press = 0;
         button_state = S_COLOR_SELECT_OFF;
       }
       break;
@@ -651,7 +680,7 @@ void handlePress(bool pressed) {
     //** COLOR CONFIRM *************************************
     //******************************************************
     case S_COLOR_CONFIRM_OFF:
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_COLOR_CONFIRM_PRESSED;
       }
@@ -659,6 +688,7 @@ void handlePress(bool pressed) {
 
     case S_COLOR_CONFIRM_PRESSED:
       if (!pressed) {
+        since_press = 0;
         edit_color++;
         Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
         if (edit_color == PALETTE_SIZE) {
@@ -672,15 +702,16 @@ void handlePress(bool pressed) {
         } else {
           button_state = S_COLOR_SELECT_OFF;
         }
-      } else if (since_press > 2000) {
+      } else if (since_press > SHORT_HOLD) {
         Serial.print(F("will reject... "));
-        flash(128, 0, 0, 5); since_press = 1000;
+        flash(128, 0, 0, 5); since_press = FLASH_TIME;
         button_state = S_COLOR_CONFIRM_REJECT_WAIT;
       }
       break;
 
     case S_COLOR_CONFIRM_REJECT_WAIT:
       if (!pressed) {
+        since_press = 0;
         if (edit_color == 0) {
           Serial.println(F("reject and repick: "));
           button_state = S_COLOR_SELECT_OFF;
@@ -691,7 +722,7 @@ void handlePress(bool pressed) {
           button_state = S_COLOR_CONFIRM_OFF;
         }
         printPaletteSlot(); Serial.println();
-      } else if (since_press > 3000) {
+      } else if (since_press > LONG_HOLD) {
         Serial.print(F("will save... "));
         flash(128, 128, 128, 5);
         button_state = S_COLOR_CONFIRM_EXIT_WAIT;
@@ -707,6 +738,7 @@ void handlePress(bool pressed) {
         Serial.print(F("saving: ")); printPalette();
         Serial.print(F(" with ")); Serial.print(mode->num_colors[mode->cur_variant]);
         Serial.println(F(" slots"));
+        since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
       }
@@ -717,7 +749,7 @@ void handlePress(bool pressed) {
     //** PRIME SELECT **************************************
     //******************************************************
     case S_PRIME_SELECT_OFF:
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_PRIME_SELECT_PRESSED;
       }
@@ -728,8 +760,9 @@ void handlePress(bool pressed) {
         mode->prime[mode->cur_variant] = (mode->prime[mode->cur_variant] + 1) % 16;
         Serial.print(F("changing: ")); printPrime(); Serial.println();
         mode->reset();
+        since_press = 0;
         button_state = S_PRIME_SELECT_OFF;
-      } else if (since_press >= 3000) {
+      } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will save.. "));
         flash(128, 128, 128, 5);
         button_state = S_PRIME_SELECT_WAIT;
@@ -741,6 +774,7 @@ void handlePress(bool pressed) {
         mode->save();
         mode->reset();
         Serial.print(F("saving: ")); printPrime(); Serial.println();
+        since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
       }
@@ -751,7 +785,7 @@ void handlePress(bool pressed) {
     //** ACCELEROMETER MODE SELECT *************************
     //******************************************************
     case S_ACC_MODE_SELECT_OFF:
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_ACC_MODE_SELECT_PRESSED;
       }
@@ -761,8 +795,9 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->acc_mode = (mode->acc_mode + 1) % 5;
         Serial.print(F("switched: ")); printAccMode(); Serial.println();
+        since_press = 0;
         button_state = S_ACC_MODE_SELECT_OFF;
-      } else if (since_press >= 3000) {
+      } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will save..."));
         flash(128, 128, 128, 5);
         button_state = S_ACC_MODE_SELECT_WAIT;
@@ -774,6 +809,7 @@ void handlePress(bool pressed) {
         mode->save();
         mode->init();
         Serial.print(F("saved: ")); printAccMode(); Serial.println();
+        since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
       }
@@ -784,7 +820,7 @@ void handlePress(bool pressed) {
     //** ACCELEROMETER SENSITITITY SELECT ******************
     //******************************************************
     case S_ACC_SENS_SELECT_OFF:
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_ACC_SENS_SELECT_PRESSED;
       }
@@ -794,8 +830,9 @@ void handlePress(bool pressed) {
       if (!pressed) {
         mode->acc_sensitivity = (mode->acc_sensitivity + 1) % 3;
         Serial.print(F("switched: ")); printAccSensitivity(); Serial.println();
+        since_press = 0;
         button_state = S_ACC_SENS_SELECT_OFF;
-      } else if (since_press >= 3000) {
+      } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will save.. "));
         flash(128, 128, 128, 5);
         button_state = S_ACC_SENS_SELECT_WAIT;
@@ -807,6 +844,7 @@ void handlePress(bool pressed) {
         mode->save();
         mode->init();
         Serial.print(F("saved: ")); printAccSensitivity(); Serial.println();
+        since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
       }
@@ -818,12 +856,13 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_BUNDLE_SELECT_START:
       if (!pressed) {
+        since_press = 0;
         button_state = S_BUNDLE_SELECT_OFF;
       }
       break;
 
     case S_BUNDLE_SELECT_OFF:
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_BUNDLE_SELECT_PRESSED;
       }
@@ -834,10 +873,11 @@ void handlePress(bool pressed) {
         cur_bundle = (cur_bundle + 1) % NUM_BUNDLES;
         resetMode();
         Serial.print(F("switched: bundle ")); Serial.println(cur_bundle + 1);
+        since_press = 0;
         button_state = S_BUNDLE_SELECT_OFF;
-      } else if (since_press >= 3000) {
+      } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will select bundle... "));
-        flash(0, 0, 128, 5); since_press = 1000;
+        flash(0, 0, 128, 5); since_press = FLASH_TIME;
         button_state = S_BUNDLE_SELECT_WAIT;
       }
       break;
@@ -845,9 +885,10 @@ void handlePress(bool pressed) {
     case S_BUNDLE_SELECT_WAIT:
       if (!pressed) {
         Serial.print(F("select: bundle ")); Serial.println(cur_bundle + 1);
+        since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
-      } else if (since_press >= 3000) {
+      } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will edit bundle... "));
         flash(128, 128, 0, 5);
         button_state = S_BUNDLE_SELECT_EDIT;
@@ -855,11 +896,28 @@ void handlePress(bool pressed) {
       break;
 
     case S_BUNDLE_SELECT_EDIT:
-      if (!pressed) {
+      if (since_press >= LONG_HOLD) {
+        Serial.print(F("will toggle bpm switching... "));
+        flash(128, 0, 0, 1); flash(0, 128, 0, 1); flash(0, 0, 128, 1); flash(0, 128, 0, 1); flash(0, 0, 128, 1);
+        button_state = S_BUNDLE_SELECT_BPM;
+      } else if (!pressed) {
         resetMode();
         Serial.println(F("edit"));
+        since_press = 0;
         transitioned = true;
         button_state = S_BUNDLE_EDIT_OFF;
+      }
+      break;
+
+    case S_BUNDLE_SELECT_BPM:
+      if (!pressed) {
+        bpm_enabled = !bpm_enabled;
+        bpm_tracker = 0;
+        if (bpm_enabled) { Serial.println(F("bpm switching enabled")); }
+        else {             Serial.println(F("bpm switching disabled")); }
+        since_press = 0;
+        transitioned = true;
+        button_state = S_PLAY_OFF;
       }
       break;
 
@@ -872,7 +930,7 @@ void handlePress(bool pressed) {
         Serial.print(F("editing: ")); printCurMode(); Serial.println();
         transitioned = false;
       }
-      if (pressed) {
+      if (pressed && since_press > PRESS_DELAY) {
         since_press = 0;
         button_state = S_BUNDLE_EDIT_PRESSED;
       }
@@ -884,16 +942,18 @@ void handlePress(bool pressed) {
         mode = modes[bundles[cur_bundle][bundle_idx]];
         mode->init();
         Serial.print(F("switched: ")); printCurMode(); Serial.println();
+        since_press = 0;
         button_state = S_BUNDLE_EDIT_OFF;
-      } else if (since_press >= 3000) {
+      } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will set... "));
-        flash(128, 0, 128, 5); since_press = 1000;
+        flash(128, 0, 128, 5); since_press = FLASH_TIME;
         button_state = S_BUNDLE_EDIT_WAIT;
       }
       break;
 
     case S_BUNDLE_EDIT_WAIT:
       if (!pressed) {
+        since_press = 0;
         bundle_idx++;
         Serial.print(F("set: ")); printCurMode(); Serial.println();
         if (bundle_idx == NUM_MODES) {
@@ -908,7 +968,7 @@ void handlePress(bool pressed) {
           transitioned = true;
           button_state = S_BUNDLE_EDIT_OFF;
         }
-      } else if (since_press >= 3000) {
+      } else if (since_press >= LONG_HOLD) {
         Serial.print(F("will save... "));
         flash(128, 128, 128, 5);
         button_state = S_BUNDLE_EDIT_SAVE;
@@ -921,13 +981,14 @@ void handlePress(bool pressed) {
         saveBundles();
         resetMode();
         Serial.print(F("saved: ")); printCurBundle(); Serial.println();
+        since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
       }
       break;
 
-
     default:
+      since_press = 0;
       transitioned = true;
       button_state = S_PLAY_OFF;
       break;
@@ -1101,16 +1162,16 @@ void enterSleep() {
   uint16_t held_count = 0;
   limiter = 0;
   while (digitalRead(PIN_BUTTON) == LOW) {
-    if (limiter > 32000) {
+    if (limiter > FRAME_TICKS) {
       limiter = 0;
       held_count++;
     }
-    if (held_count > 3000) {
+    if (held_count > LONG_HOLD) {
       break;
     }
   }
 
-  if (held_count > 3000) {
+  if (held_count > LONG_HOLD) {
     Serial.println(F("select bundle"));
     flash(0, 0, 128, 5);
     button_state = S_BUNDLE_SELECT_START;

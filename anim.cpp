@@ -167,260 +167,248 @@ Mode::Mode(uint16_t user_eeprom_addr, uint8_t user_acc_mode, uint8_t user_acc_se
   palette[1][11] = c1B;
 }
 
+void Mode::prime_strobe(uint8_t c_time, uint8_t b_time) {
+  if (tick >= c_time + b_time) {
+    tick = 0;
+    cur_color = (cur_color + 1) % num_colors[cur_variant];
+  }
+
+  if (tick < c_time) {
+    unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_pulse(uint8_t c_time, uint8_t b_time) {
+  if (tick >= c_time + b_time) {
+    tick = 0;
+    cur_color = (cur_color + 1) % num_colors[cur_variant];
+  }
+
+  if (tick < c_time / 2) {
+    unpackColor(palette[cur_variant][cur_color], &r0, &g0, &b0);
+    morphColor(tick, c_time / 2, 0, 0, 0, r0, g0, b0, &_r, &_g, &_b);
+  } else if (tick < c_time) {
+    unpackColor(palette[cur_variant][cur_color], &r0, &g0, &b0);
+    morphColor(tick - (c_time / 2), c_time - (c_time / 2), r0, g0, b0, 0, 0, 0, &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_tracer(uint8_t c_time, uint8_t b_time) {
+  if (tick >= c_time + b_time) {
+    tick = 0;
+    cur_color = (cur_color + 1) % (num_colors[cur_variant] - 1);
+  }
+
+  if (tick < c_time) {
+    unpackColor(palette[cur_variant][(cur_color + 1) % num_colors[cur_variant]], &_r, &_g, &_b);
+  } else {
+    unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
+  }
+}
+
+void Mode::prime_dashdops(uint8_t c_time, uint8_t d_time, uint8_t b_time, uint8_t dops) {
+  counter1 = num_colors[cur_variant] - 1;
+  if (tick >= (counter1 * c_time) + ((d_time + b_time) * dops) + b_time) {
+    tick = 0;
+  }
+
+  if (tick < counter1 * c_time) {
+    unpackColor(palette[cur_variant][(tick / c_time) + 1], &_r, &_g, &_b);
+  } else {
+    counter0 = tick - (counter1 * c_time);
+    if (counter0 % (d_time + b_time) >= b_time) {
+      unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
+    } else {
+      _r = 0; _g = 0; _b = 0;
+    }
+  }
+}
+
+void Mode::prime_blinke(uint8_t c_time, uint8_t b_time) {
+  if (tick >= (num_colors[cur_variant] * c_time) + b_time) {
+    tick = 0;
+  }
+
+  if (tick < num_colors[cur_variant] * c_time) {
+    unpackColor(palette[cur_variant][tick / c_time], &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_edge(uint8_t c_time, uint8_t e_time, uint8_t b_time) {
+  if (counter0 == 0) counter0 = num_colors[cur_variant] - 1;
+  if (tick >= (counter0 * c_time * 2) + e_time + b_time) {
+    tick = 0;
+  }
+
+  if (tick < counter0 * c_time) {
+    unpackColor(palette[cur_variant][counter0 - (tick / c_time)], &_r, &_g, &_b);
+  } else if (tick < (counter0 * c_time) + e_time) {
+    unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
+  } else if (tick < (counter0 * c_time * 2) + e_time) {
+    unpackColor(palette[cur_variant][((tick - ((counter0 * c_time) + e_time)) / c_time) + 1], &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_lego(uint8_t b_time) {
+  if (counter0 == 0) counter0 = getLegoTime();
+  if (tick >= counter0 + b_time) {
+    tick = 0;
+    cur_color = (cur_color + 1) % num_colors[cur_variant];
+    counter0 = getLegoTime();
+  }
+
+  if (tick < counter0) {
+    unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_chase(uint8_t c_time, uint8_t b_time, uint8_t steps) {
+  if (tick >= c_time + b_time) {
+    tick = 0;
+    counter0++;
+    if (counter0 >= steps - 1) {
+      counter0 = 0;
+      cur_color = (cur_color + 1) % num_colors[cur_variant];
+    }
+  }
+
+  if (tick < c_time) {
+    counter1 = tick / (c_time / steps);
+    if (counter0 == 0) {
+      unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
+    } else {
+      if (counter1 < counter0) {
+        unpackColor(palette[cur_variant][(cur_color + 1) % num_colors[cur_variant]], &_r, &_g, &_b);
+      } else if (counter1 == counter0) {
+        _r = 0; _g = 0; _b = 0;
+      } else {
+        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
+      }
+    }
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_morph(uint8_t c_time, uint8_t b_time, uint8_t steps) {
+  if (tick >= c_time + b_time) {
+    tick = 0;
+    counter0++;
+    if (counter0 >= steps) {
+      counter0 = 0;
+      cur_color = (cur_color + 1) % num_colors[cur_variant];
+    }
+  }
+
+  if (tick < c_time) {
+    unpackColor(palette[cur_variant][cur_color],                    &r0, &g0, &b0);
+    unpackColor(palette[cur_variant][(cur_color + 1) % num_colors[cur_variant]], &r1, &g1, &b1);
+    morphColor(tick + ((c_time + b_time) * counter0), (c_time + b_time) * steps, r0, g0, b0, r1, g1, b1, &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_comet(uint8_t c_time, uint8_t b_time, uint8_t per_step) {
+  if (tick >= c_time + b_time) {
+    tick = 0;
+    counter0 += (counter1 == 0) ? per_step : -1 * per_step;
+    if (counter0 <= 0) {
+      counter1 = 0;
+      cur_color = (cur_color + 1) % num_colors[cur_variant];
+    } else if (counter0 >= c_time) {
+      counter1 = 1;
+    }
+  }
+
+  if (tick <= counter0) {
+    unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void Mode::prime_candy(uint8_t c_time, uint8_t b_time, uint8_t pick, uint8_t repeat) {
+  if (tick >= c_time + b_time) {
+    tick = 0;
+    counter0++;
+    if (counter0 >= pick) {
+      counter0 = 0;
+      counter1++;
+      if (counter1 >= repeat) {
+        counter1 = 0;
+        cur_color = (cur_color + 1) % num_colors[cur_variant];
+      }
+    }
+  }
+
+  if (tick < c_time) {
+    unpackColor(palette[cur_variant][(cur_color + counter0) % num_colors[cur_variant]], &_r, &_g, &_b);
+  } else {
+    _r = 0; _g = 0; _b = 0;
+  }
+}
+
 void Mode::render(uint8_t *r, uint8_t *g, uint8_t *b) {
   switch (prime[cur_variant]) {
     case PRIME_STROBE:
-      if (tick >= 10 + 16) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-      }
-
-      if (tick < 10) {
-        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_strobe(10, 16);
       break;
-
     case PRIME_HYPER:
-      if (tick >= 34 + 34) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-      }
-
-      if (tick < 34) {
-        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_strobe(34, 34);
       break;
-
     case PRIME_DOPS:
-      if (tick >= 3 + 20) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-      }
-
-      if (tick < 3) {
-        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_strobe(3, 20);
       break;
-
     case PRIME_STROBIE:
-      if (tick >= 6 + 46) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-      }
-
-      if (tick < 6) {
-        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_strobe(6, 46);
       break;
-
     case PRIME_PULSE:
-      if (tick >= 200 + 50) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-      }
-
-      if (tick < 100) {
-        unpackColor(palette[cur_variant][cur_color], &r0, &g0, &b0);
-        morphColor(tick, 100, 0, 0, 0, r0, g0, b0, &_r, &_g, &_b);
-      } else if (tick < 200) {
-        unpackColor(palette[cur_variant][cur_color], &r0, &g0, &b0);
-        morphColor(tick - 100, 100, r0, g0, b0, 0, 0, 0, &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_pulse(200, 50);
       break;
-
     case PRIME_SEIZURE:
-      if (tick >= 10 + 190) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-      }
-
-      if (tick < 10) {
-        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_strobe(10, 190);
       break;
-
     case PRIME_TRACER:
-      if (tick >= 6 + 46) {
-        tick = 0;
-        cur_color = (cur_color + 1) % (num_colors[cur_variant] - 1);
-      }
-
-      if (tick < 6) {
-        unpackColor(palette[cur_variant][(cur_color + 1) % num_colors[cur_variant]], &_r, &_g, &_b);
-      } else {
-        unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
-      }
+      prime_tracer(6, 46);
       break;
-
     case PRIME_DASHDOPS:
-      counter1 = num_colors[cur_variant] - 1;
-      if (tick >= (counter1 * 22) + (23 * 7) + 20) {
-        tick = 0;
-      }
-
-      if (tick < counter1 * 22) {
-        unpackColor(palette[cur_variant][(tick / 22) + 1], &_r, &_g, &_b);
-      } else {
-        counter0 = tick - (counter1 * 22);
-        if (counter0 % 23 > 19) {
-          unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
-        } else {
-          _r = 0; _g = 0; _b = 0;
-        }
-      }
+      prime_dashdops(22, 3, 20, 7);
       break;
-
     case PRIME_BLINKE:
-      if (tick >= (num_colors[cur_variant] * 10) + 100) {
-        tick = 0;
-      }
-
-      if (tick < num_colors[cur_variant] * 10) {
-        unpackColor(palette[cur_variant][tick / 10], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_blinke(10, 100);
       break;
-
     case PRIME_EDGE:
-      if (counter0 == 0) counter0 = num_colors[cur_variant] - 1;
-      if (tick >= (counter0 * 8) + 16 + 40) {
-        tick = 0;
-      }
-
-      if (tick < counter0 * 4) {
-        unpackColor(palette[cur_variant][counter0 - (tick / 4)], &_r, &_g, &_b);
-      } else if (tick < (counter0 * 4) + 16) {
-        unpackColor(palette[cur_variant][0], &_r, &_g, &_b);
-      } else if (tick < (counter0 * 8) + 16) {
-        unpackColor(palette[cur_variant][((tick - ((counter0 * 4) + 16)) / 4) + 1], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_edge(4, 16, 40);
       break;
-
     case PRIME_LEGO:
-      if (counter0 == 0) counter0 = getLegoTime();
-      if (tick >= counter0 + 16) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-        counter0 = getLegoTime();
-      }
-
-      if (tick < counter0) {
-        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_lego(16);
       break;
-
     case PRIME_CHASE:
-      if (tick >= 120) {
-        tick = 0;
-        counter0++;
-        if (counter0 >= 4) {
-          counter0 = 0;
-          cur_color = (cur_color + 1) % num_colors[cur_variant];
-        }
-      }
-
-      if (tick < 100) {
-        counter1 = tick / 20;
-        if (counter0 == 0) {
-          unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-        } else {
-          if (counter1 < counter0) {
-            unpackColor(palette[cur_variant][(cur_color + 1) % num_colors[cur_variant]], &_r, &_g, &_b);
-          } else if (counter1 == counter0) {
-            _r = 0; _g = 0; _b = 0;
-          } else {
-            unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-          }
-        }
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_chase(100, 20, 5);
       break;
-
     case PRIME_MORPH:
-      if (tick >= 34 + 34) {
-        tick = 0;
-        counter0++;
-        if (counter0 >= 4) {
-          counter0 = 0;
-          cur_color = (cur_color + 1) % num_colors[cur_variant];
-        }
-      }
-
-      if (tick < 34) {
-        unpackColor(palette[cur_variant][cur_color],                    &r0, &g0, &b0);
-        unpackColor(palette[cur_variant][(cur_color + 1) % num_colors[cur_variant]], &r1, &g1, &b1);
-        morphColor(tick + (68 * counter0), 68 * 4, r0, g0, b0, r1, g1, b1, &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_morph(34, 34, 4);
       break;
-
     case PRIME_RIBBON:
-      if (tick >= 22) {
-        tick = 0;
-        cur_color = (cur_color + 1) % num_colors[cur_variant];
-      }
-      unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
+      prime_strobe(22, 0);
       break;
-
     case PRIME_COMET:
-      if (tick >= 30 + 16) {
-        tick = 0;
-        counter0 += (counter1 == 0) ? 2 : -2;
-        if (counter0 <= 0) {
-          counter1 = 0;
-          cur_color = (cur_color + 1) % num_colors[cur_variant];
-        } else if (counter0 >= 30) {
-          counter1 = 1;
-        }
-      }
-
-      if (tick <= counter0) {
-        unpackColor(palette[cur_variant][cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_comet(30, 16, 2);
       break;
-
     case PRIME_CANDY:
-      if (tick >= 10 + 16) {
-        tick = 0;
-        counter0++;
-        if (counter0 >= 3) {
-          counter0 = 0;
-          counter1++;
-          if (counter1 >= 8) {
-            counter1 = 0;
-            cur_color = (cur_color + 1) % num_colors[cur_variant];
-          }
-        }
-      }
-
-      if (tick < 10) {
-        unpackColor(palette[cur_variant][(cur_color + counter0) % num_colors[cur_variant]], &_r, &_g, &_b);
-      } else {
-        _r = 0; _g = 0; _b = 0;
-      }
+      prime_candy(10, 16, 3, 8);
       break;
-
     default:
       break;
   }
