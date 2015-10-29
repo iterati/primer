@@ -131,7 +131,7 @@ bool conjure_toggle = false;
 
 bool bpm_enabled = false;
 uint32_t bpm_tracker = 0;
-uint32_t bpm_trigger = 32000;
+uint32_t bpm_trigger = 64000;
 
 const PROGMEM uint8_t gamma_table[256] = {
     0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,
@@ -319,7 +319,7 @@ void loop() {
     r = 0; g = 0; b = 0;
   }
 
-  if (button_state < 10 && bpm_enabled) {
+  if (button_state < 10 && bpm_enabled && bpm_tracker > bpm_trigger) {
     incMode();
     Serial.print(F("bpm next mode: ")); printCurMode(); Serial.println();
   }
@@ -330,8 +330,8 @@ void loop() {
 
 void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
   for (uint8_t i = 0; i < flashes; i++) {
-    for (uint8_t j = 0; j < 100; j++) {
-      if (j < 50) {
+    for (uint8_t j = 0; j < 200; j++) {
+      if (j < 100) {
         writeFrame(r, g, b);
       } else {
         writeFrame(0, 0, 0);
@@ -463,11 +463,17 @@ void accUpdate() {
 #define S_BUNDLE_SELECT_WAIT          73
 #define S_BUNDLE_SELECT_EDIT          74
 #define S_BUNDLE_SELECT_BPM           75
+#define S_BPM_SET_OFF                 76
+#define S_BPM_SET_PRESSED             77
 
 #define S_BUNDLE_EDIT_OFF             80
 #define S_BUNDLE_EDIT_PRESSED         81
 #define S_BUNDLE_EDIT_WAIT            82
 #define S_BUNDLE_EDIT_SAVE            83
+
+uint8_t times_clicked = 0;
+uint32_t bpm_pressed = 0;
+uint32_t total_time = 0;
 
 void handlePress(bool pressed) {
   switch (button_state) {
@@ -914,13 +920,53 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_SELECT_BPM:
       if (!pressed) {
-        bpm_enabled = !bpm_enabled;
-        bpm_tracker = 0;
-        if (bpm_enabled) { Serial.println(F("bpm switching enabled")); }
-        else {             Serial.println(F("bpm switching disabled")); }
+        total_time = 0;
+        times_clicked = 0;
+        since_press = 0;
+        transitioned = true;
+        bpm_pressed = 0;
+        Serial.println(F("setting bpm"));
+        button_state = S_BPM_SET_OFF;
+      }
+      break;
+
+    case S_BPM_SET_OFF:
+      if (pressed && since_press > PRESS_DELAY) {
+        since_press = 0;
+
+        Serial.print(F("click #")); Serial.print(times_clicked);
+        if (times_clicked != 0) {
+          total_time += bpm_pressed;
+          Serial.print(F(" this click ")); Serial.print(bpm_pressed);
+          Serial.print(F(" total ")); Serial.print(total_time);
+        }
+        if (times_clicked >= 4) {
+          bpm_trigger = total_time * 4;
+          Serial.print(F(" bpm trigger is ")); Serial.print(bpm_trigger);
+        }
+        Serial.println();
+        times_clicked++;
+        bpm_pressed = 0;
+
+        button_state = S_BPM_SET_PRESSED;
+      } else if (since_press > 20000) {
         since_press = 0;
         transitioned = true;
         button_state = S_PLAY_OFF;
+      }
+      break;
+
+    case S_BPM_SET_PRESSED:
+      if (!pressed) {
+        since_press = 0;
+        if (times_clicked >= 5) {
+          bpm_tracker = 0;
+          bpm_enabled = true;
+          transitioned = true;
+          button_state = S_PLAY_OFF;
+        } else {
+          button_state = S_BPM_SET_OFF;
+        }
       }
       break;
 
@@ -997,6 +1043,7 @@ void handlePress(bool pressed) {
       break;
   }
   since_press++;
+  bpm_pressed++;
 }
 
 void printConfigMode() {

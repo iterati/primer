@@ -442,7 +442,7 @@ void Mode::updateAcc(float fxg, float fyg, float fzg) {
   switch (acc_mode) {
     case AMODE_SPEED:
       if (acc_sensitivity == ASENS_LOW) {
-        level = 2.0; thresh = 25;
+        level = 2.2; thresh = 35;
       } else if (acc_sensitivity == ASENS_MEDIUM) {
         level = 1.7; thresh = 25;
       } else if (acc_sensitivity == ASENS_HIGH) {
