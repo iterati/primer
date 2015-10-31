@@ -180,16 +180,16 @@ void _comet(Prime* prime, uint8_t c_time, uint8_t b_time, uint8_t per_step) {
   if (prime->tick >= c_time + b_time) {
     prime->tick = 0;
     prime->counter0 += (prime->counter1 == 0) ? per_step : -1 * per_step;
+    prime->cur_color = (prime->cur_color + 1) % prime->num_colors;
     if (prime->counter0 <= 0) {
       prime->counter1 = 0;
-      prime->cur_color = (prime->cur_color + 1) % prime->num_colors;
     } else if (prime->counter0 >= c_time) {
       prime->counter1 = 1;
     }
   }
 
   if (prime->tick <= prime->counter0) {
-    unpackColor(prime->colors[(prime->cur_color + prime->counter0) % prime->num_colors], _r, _g, _b);
+    unpackColor(prime->colors[prime->cur_color], _r, _g, _b);
   } else {
     _r = 0; _g = 0; _b = 0;
   }
@@ -357,7 +357,7 @@ void Prime::render(uint8_t& r, uint8_t& g, uint8_t& b) {
       _strobe(this, 3, 20);
       break;
     case PRIME_STROBIE:
-      _strobe(this, 6, 46);
+      _strobe(this, 6, 40);
       break;
     case PRIME_PULSE:
       _pulse(this, 200, 50);
@@ -366,10 +366,10 @@ void Prime::render(uint8_t& r, uint8_t& g, uint8_t& b) {
       _strobe(this, 10, 190);
       break;
     case PRIME_TRACER:
-      _tracer(this, 6, 46);
+      _tracer(this, 6, 40);
       break;
     case PRIME_DASHDOPS:
-      _dashdops(this, 22, 3, 20, 7);
+      _dashdops(this, 3, 3, 20, 1);
       break;
     case PRIME_BLINKE:
       _blinke(this, 10, 100);

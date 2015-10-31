@@ -34,7 +34,13 @@ SOFTWARE.
 #define DEBUG
 #define NUM_MODES 12
 #define NUM_BUNDLES 4
-const uint8_t current_version = 30;
+const uint8_t current_version = 31;
+
+#define VERSION_ADDR       1023
+#define BUNDLE_EEPROM_ADDR 900
+uint16_t addrs[NUM_MODES] = {
+  520, 550, 580, 610, 640, 670, 700, 730, 760, 790, 820, 850,
+};
 
 #define AMODE_OFF   0
 #define AMODE_SPEED 1
@@ -100,11 +106,11 @@ class Mode {
       switch (accel_mode) {
         case AMODE_SPEED:
           if (accel_sens == ASENS_LOW) {
-            level = 2.2; thresh = 35;
+            level = 2.5; thresh = 10;
           } else if (accel_sens == ASENS_MEDIUM) {
             level = 1.7; thresh = 25;
           } else if (accel_sens == ASENS_HIGH) {
-            level = 1.0; thresh = 10;
+            level = 1.3; thresh = 5;
           }
 
           pitch = abs(fxg) + abs(fyg) + abs(fzg) - 1.0;
@@ -120,7 +126,7 @@ class Mode {
               acc_counter = 25;
             }
           } else {
-            if (pitch > 1.0) {
+            if (pitch > 1.2) {
               acc_counter = 25;
             } else {
               acc_counter--;
@@ -179,10 +185,6 @@ class Mode {
     int16_t acc_counter;
 };
 
-uint16_t addrs[NUM_MODES] = {
-  520, 550, 580, 610, 640, 670, 700, 730, 760, 790, 820, 850,
-};
-
 Mode mode00 = Mode();
 Mode mode01 = Mode();
 Mode mode02 = Mode();
@@ -204,15 +206,14 @@ Mode *modes[NUM_MODES] = {
 Mode *mode;
 
 uint8_t bundles[NUM_BUNDLES][NUM_MODES] = {
-  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11},
-  { 3,  4,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0},
-  { 6,  7,  8,  0,  0,  0,  0,  0,  0,  0,  0,  0},
+  { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  0,  0},
   { 9, 10, 11,  0,  0,  0,  0,  0,  0,  0,  0,  0},
+  { 6,  7,  8, 10, 11,  0,  0,  0,  0,  0,  0,  0},
+  { 2,  3,  4,  5,  0,  0,  0,  0,  0,  0,  0,  0},
 };
-uint8_t bundle_slots[NUM_BUNDLES] = {12, 3, 3, 3};
+uint8_t bundle_slots[NUM_BUNDLES] = {10, 3, 5, 6};
 uint8_t cur_bundle = 0;
 uint8_t bundle_idx = 0;
-
 
 elapsedMicros limiter = 0;
 
@@ -324,7 +325,6 @@ const PROGMEM uint8_t gamma_table[256] = {
 #define CONFIG_ACC_MODE    4
 #define CONFIG_ACC_SENS    5
 
-#define BUNDLE_EEPROM_ADDR 900
 #define FRAME_TICKS 32000
 
 void saveBundles() {
@@ -351,6 +351,12 @@ void saveModes() {
 
 void loadModes() {
   for (uint8_t i = 0; i < NUM_MODES; i++) modes[i]->load(addrs[i]);
+}
+
+void clearMemory() {
+  for (int i = 0 ; i < EEPROM.length() ; i++) {
+    EEPROM.write(i, 0);
+  }
 }
 
 void resetModes() {
@@ -431,17 +437,18 @@ void setup() {
   digitalWrite(PIN_LDO, HIGH);
 
   Serial.println(F("\nWelcome to Primer!"));
-  if (current_version != EEPROM.read(512)) {
-    Serial.println(F("Version mismatch. Writing defaults to EEPROM."));
+  if (current_version != EEPROM.read(VERSION_ADDR)) {
+    Serial.println(F("Version mismatch. Clearning EEPROM."));
+    clearMemory();
+    Serial.print(F("Writing factory settings v")); Serial.print(current_version); Serial.println(F("to EEPROM."));
     resetModes();
     saveBundles();
-    EEPROM.update(512, current_version);
+    EEPROM.update(VERSION_ADDR, current_version);
   } else {
-    Serial.println(F("Version match. Reading saved settings."));
+    Serial.print(F("Version match. Reading saved settings v")); Serial.print(current_version); Serial.println(F("from EEPROM."));
     loadModes();
     loadBundles();
   }
-  Serial.print(F("Prime v0.1.5. EEPROM Version: ")); Serial.println(current_version);
 
   for (uint8_t i = 0; i < NUM_MODES; i++) modes[i]->init();
   accInit();
