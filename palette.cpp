@@ -2,7 +2,7 @@
 
 const PROGMEM uint8_t color_palette[NUM_COLORS][3] = {
   {  0,   0,   0}, // 0x00 blank, white, dims
-  { 48,  48,  48},
+  { 56,  60,  60},
   { 32,   0,   0},
   { 24,  24,   0},
   {  0,  32,   0},
