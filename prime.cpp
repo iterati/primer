@@ -369,7 +369,7 @@ void Prime::render(uint8_t& r, uint8_t& g, uint8_t& b) {
       _tracer(this, 6, 40);
       break;
     case PRIME_DASHDOPS:
-      _dashdops(this, 3, 3, 20, 1);
+      _dashdops(this, 3, 3, 20, 2);
       break;
     case PRIME_BLINKE:
       _blinke(this, 10, 100);

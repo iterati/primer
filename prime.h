@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 
-#define PALETTE_12
-// #define PALETTE_16
+//#define PALETTE_12
+#define PALETTE_16
 
 #ifdef PALETTE_12
 #define PALETTE_SIZE 12
