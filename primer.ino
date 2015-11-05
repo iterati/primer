@@ -27,14 +27,15 @@ SOFTWARE.
 #include <Wire.h>
 #include <avr/sleep.h>
 #include <avr/power.h>
+#include <avr/pgmspace.h>
 #include "elapsedMillis.h"
 #include "palette.h"
-#include "prime.h"
+#include "pattern.h"
 
 #define DEBUG
 #define NUM_MODES 16
 #define NUM_BUNDLES 4
-const uint8_t current_version = 40;
+#define EEPROM_VERSION 41
 
 #define VERSION_ADDR 1023
 #define BUNDLE_EEPROM_ADDR 900
@@ -55,46 +56,46 @@ uint16_t addrs[NUM_MODES] = {
 class Mode {
   public:
     Mode() : accel_mode(0), accel_sens(0), cur_variant(0), edit_color(0), acc_counter(0) {
-      prime[0] = Prime();
-      prime[1] = Prime();
+      pattern[0] = Pattern();
+      pattern[1] = Pattern();
     }
 
     void render(uint8_t& r, uint8_t& g, uint8_t& b) {
       if (cur_variant == 0) {
-        prime[1].render(r, g, b);
-        prime[0].render(r, g, b);
+        pattern[1].render(r, g, b);
+        pattern[0].render(r, g, b);
       } else {
-        prime[0].render(r, g, b);
-        prime[1].render(r, g, b);
+        pattern[0].render(r, g, b);
+        pattern[1].render(r, g, b);
       }
     }
 
     void init() {
-      prime[0].reset();
-      prime[1].reset();
+      pattern[0].reset();
+      pattern[1].reset();
       edit_color = 0;
     }
 
     void load(uint16_t addr) {
       accel_mode = EEPROM.read(addr);
       accel_sens = EEPROM.read(addr + 1);
-      prime[0].load(addr + 2);
-      prime[1].load(addr + 20);
+      pattern[0].load(addr + 2);
+      pattern[1].load(addr + 20);
     }
 
     void save(uint16_t addr) {
       EEPROM.update(addr, accel_mode);
       EEPROM.update(addr + 1, accel_sens);
-      prime[0].save(addr + 2);
-      prime[1].save(addr + 20);
+      pattern[0].save(addr + 2);
+      pattern[1].save(addr + 20);
     }
 
     void changeColor(int8_t v) {
-      prime[cur_variant].colors[edit_color] = (prime[cur_variant].colors[edit_color] + v + NUM_COLORS) % NUM_COLORS;
+      pattern[cur_variant].colors[edit_color] = (pattern[cur_variant].colors[edit_color] + v + NUM_COLORS) % NUM_COLORS;
     }
 
     void changeShade() {
-      prime[cur_variant].colors[edit_color] += 0x40;
+      pattern[cur_variant].colors[edit_color] += 0x40;
     }
 
     void updateAccel(float fxg, float fyg, float fzg) {
@@ -176,7 +177,7 @@ class Mode {
       }
     }
 
-    Prime prime[2];
+    Pattern pattern[2];
     uint8_t cur_variant;
     uint8_t accel_mode, accel_sens;
     uint8_t edit_color;
@@ -201,33 +202,34 @@ Mode mode14 = Mode();
 Mode mode15 = Mode();
 
 Mode *modes[NUM_MODES] = {
-  &mode00, &mode01, &mode02, &mode03,
-  &mode04, &mode05, &mode06, &mode07,
-  &mode08, &mode09, &mode10, &mode11,
-  &mode12, &mode13, &mode14, &mode15,
+  &mode00, &mode01, &mode02, &mode03, &mode04, &mode05, &mode06, &mode07,
+  &mode08, &mode09, &mode10, &mode11, &mode12, &mode13, &mode14, &mode15,
 };
 Mode *mode;
 
-uint8_t bundles[NUM_BUNDLES][NUM_MODES] = {
+const PROGMEM uint8_t factory_bundles[NUM_BUNDLES][NUM_MODES] = {
   {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-  {9, 10, 7, 8, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0, 0},
   {15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
-  {5, 4, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
-uint8_t bundle_slots[NUM_BUNDLES] = {16, 5, 16, 6};
+const PROGMEM uint8_t factory_bundle_slots[NUM_BUNDLES] = {16, 9, 16, 4};
+
+uint8_t bundles[NUM_BUNDLES][NUM_MODES];
+uint8_t bundle_slots[NUM_BUNDLES];
 uint8_t cur_bundle = 0;
 uint8_t bundle_idx = 0;
 
 elapsedMicros limiter = 0;
 
 uint8_t accel_counter = 0;
-float fxg, fyg, fzg = 0.0;
-int8_t xg, yg, zg = 0;
+int8_t xg, yg, zg;
+float fxg, fyg, fzg;
 
 uint8_t button_state = 0;
 uint8_t new_state = 0;
 uint8_t config_state = 0;
-uint16_t since_trans = 0;
+uint32_t since_trans = 0;
 
 bool conjure = false;
 bool conjure_toggle = false;
@@ -239,81 +241,65 @@ uint8_t times_clicked = 0;
 uint32_t bpm_pressed = 0;
 uint32_t total_time = 0;
 
-const PROGMEM uint8_t gamma_table[256] = {
-    0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,
-    2,   2,   2,   3,   3,   3,   3,   3,   3,   4,   4,   4,   4,   4,   5,   5,
-    5,   5,   6,   6,   6,   6,   7,   7,   7,   7,   8,   8,   8,   8,   9,   9,
-    9,  10,  10,  10,  10,  11,  11,  11,  12,  12,  12,  13,  13,  14,  14,  14,
-   15,  15,  15,  16,  16,  17,  17,  17,  18,  18,  19,  19,  20,  20,  20,  21,
-   21,  22,  22,  23,  23,  24,  24,  25,  25,  26,  26,  27,  27,  28,  28,  29,
-   30,  30,  31,  31,  32,  32,  33,  33,  34,  35,  35,  36,  37,  37,  38,  38,
-   39,  40,  40,  41,  42,  42,  43,  44,  44,  45,  46,  46,  47,  48,  49,  49,
-   50,  51,  51,  52,  53,  54,  54,  55,  56,  57,  58,  58,  59,  60,  61,  62,
-   62,  63,  64,  65,  66,  67,  67,  68,  69,  70,  71,  72,  73,  74,  75,  75,
-   76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,
-   92,  93,  94,  95,  96,  97,  98,  99, 100, 101, 102, 103, 104, 106, 107, 108,
-  109, 110, 111, 112, 113, 114, 116, 117, 118, 119, 120, 121, 123, 124, 125, 126,
-  127, 129, 130, 131, 132, 134, 135, 136, 137, 139, 140, 141, 142, 144, 145, 146,
-  148, 149, 150, 152, 153, 154, 156, 157, 158, 160, 161, 163, 164, 165, 167, 168,
-  170, 171, 172, 174, 175, 177, 178, 180, 181, 183, 184, 185, 187, 188, 190, 192,
-};
-
 // ********************************************************************
 // **** SETUP CODE ****************************************************
 // ********************************************************************
 #define PRESS_DELAY 100   // 0.05s
-#define SHORT_HOLD  1000  // 1.0s
-#define LONG_HOLD   2000  // 1.5s
+#define SHORT_HOLD  1000  // 0.5s
+#define LONG_HOLD   2000  // 1.0s
 #define FLASH_TIME  500  // 0.5s
 
-#define S_PLAY_OFF                    0
-#define S_PLAY_PRESSED                1
-#define S_PLAY_SLEEP_WAIT             2
-#define S_PLAY_CONJURE_WAIT           3
-#define S_PLAY_CONFIG_WAIT            4
+#define S_PLAY_OFF                  0
+#define S_PLAY_PRESSED              1
+#define S_PLAY_SLEEP_WAIT           2
+#define S_PLAY_CONJURE_WAIT         3
+#define S_PLAY_CONFIG_WAIT          4
 
-#define S_WAKEUP_WAIT                 9
+#define S_WAKEUP_WAIT               9
 
-#define S_CONFIG_SELECT_OFF           10
-#define S_CONFIG_SELECT_PRESSED       11
-#define S_CONFIG_SELECT_EDIT_WAIT     12
-#define S_CONFIG_SELECT_EXIT_WAIT     13
+#define S_CONFIG_MENU_OFF           10
+#define S_CONFIG_MENU_PRESSED       11
+#define S_CONFIG_MENU_EDIT_WAIT     12
+#define S_CONFIG_MENU_EXIT_WAIT     13
 
-#define S_COLOR_SELECT_OFF            20
-#define S_COLOR_SELECT_PRESSED        21
-#define S_COLOR_SELECT_SHADE_WAIT     23
+#define S_COLOR_SELECT_OFF          20
+#define S_COLOR_SELECT_PRESSED      21
+#define S_COLOR_SELECT_SHADE_WAIT   23
 
-#define S_COLOR_CONFIRM_OFF           30
-#define S_COLOR_CONFIRM_PRESSED       31
-#define S_COLOR_CONFIRM_REJECT_WAIT   32
-#define S_COLOR_CONFIRM_EXIT_WAIT     33
+#define S_COLOR_CONFIRM_OFF         30
+#define S_COLOR_CONFIRM_PRESSED     31
+#define S_COLOR_CONFIRM_REJECT_WAIT 32
+#define S_COLOR_CONFIRM_EXIT_WAIT   33
 
-#define S_PRIME_SELECT_OFF            40
-#define S_PRIME_SELECT_PRESSED        41
-#define S_PRIME_SELECT_WAIT           42
+#define S_PATTERN_SELECT_OFF        40
+#define S_PATTERN_SELECT_PRESSED    41
+#define S_PATTERN_SELECT_WAIT       42
 
-#define S_ACC_MODE_SELECT_OFF         50
-#define S_ACC_MODE_SELECT_PRESSED     51
-#define S_ACC_MODE_SELECT_WAIT        52
+#define S_ACC_MODE_SELECT_OFF       50
+#define S_ACC_MODE_SELECT_PRESSED   51
+#define S_ACC_MODE_SELECT_WAIT      52
 
-#define S_ACC_SENS_SELECT_OFF         60
-#define S_ACC_SENS_SELECT_PRESSED     61
-#define S_ACC_SENS_SELECT_WAIT        62
+#define S_ACC_SENS_SELECT_OFF       60
+#define S_ACC_SENS_SELECT_PRESSED   61
+#define S_ACC_SENS_SELECT_WAIT      62
 
-#define S_BUNDLE_SELECT_START         70
-#define S_BUNDLE_SELECT_OFF           71
-#define S_BUNDLE_SELECT_PRESSED       72
-#define S_BUNDLE_SELECT_WAIT          73
-#define S_BUNDLE_SELECT_EDIT          74
-#define S_BUNDLE_SELECT_BPM           75
-#define S_BPM_SET_OFF                 76
-#define S_BPM_SET_PRESSED             77
-#define S_MASTER_RESET_WAIT           78
+#define S_BUNDLE_SELECT_START       70
+#define S_BUNDLE_SELECT_OFF         71
+#define S_BUNDLE_SELECT_PRESSED     72
+#define S_BUNDLE_SELECT_WAIT        73
+#define S_BUNDLE_SELECT_EDIT        74
+#define S_BUNDLE_SELECT_BPM         75
+#define S_BPM_SET_OFF               76
+#define S_BPM_SET_PRESSED           77
+#define S_MASTER_RESET_WAIT         78
 
-#define S_BUNDLE_EDIT_OFF             80
-#define S_BUNDLE_EDIT_PRESSED         81
-#define S_BUNDLE_EDIT_WAIT            82
-#define S_BUNDLE_EDIT_SAVE            83
+#define S_BUNDLE_EDIT_OFF           80
+#define S_BUNDLE_EDIT_PRESSED       81
+#define S_BUNDLE_EDIT_WAIT          82
+#define S_BUNDLE_EDIT_SAVE          83
+
+#define S_SAVE_MODE                 90
+#define S_SAVE_BUNDLES              91
 
 #define PIN_R 9
 #define PIN_G 6
@@ -324,8 +310,8 @@ const PROGMEM uint8_t gamma_table[256] = {
 
 #define CONFIG_PALETTE0    0
 #define CONFIG_PALETTE1    1
-#define CONFIG_PRIME0      2
-#define CONFIG_PRIME1      3
+#define CONFIG_PATTERN0    2
+#define CONFIG_PATTERN1    3
 #define CONFIG_ACC_MODE    4
 #define CONFIG_ACC_SENS    5
 
@@ -351,7 +337,7 @@ void loadBundles() {
 
 void saveModes() {
   for (uint8_t i = 0; i < NUM_MODES; i++) modes[i]->save(addrs[i]);
-  EEPROM.update(VERSION_ADDR, current_version);
+  EEPROM.update(VERSION_ADDR, EEPROM_VERSION);
 }
 
 void loadModes() {
@@ -364,88 +350,100 @@ void clearMemory() {
   }
 }
 
-void resetModes() {
+void resetMemory() {
+  Serial.print(F("Writing factory settings v ")); Serial.print(EEPROM_VERSION); Serial.println(F(" to EEPROM."));
+  clearMemory();
+
   mode00.accel_mode = AMODE_SPEED;
   mode00.accel_sens = ASENS_LOW;
-  mode00.prime[0] = Prime(PRIME_DOPS,      12, 0x01, 0x08, 0x01, 0x0C, 0x01, 0x10, 0x01, 0x14, 0x01, 0x18, 0x01, 0x1C, 0x00, 0x00, 0x00, 0x00);
-  mode00.prime[1] = Prime(PRIME_DASHDOPS,  13, 0x01, 0x9E, 0x9C, 0x9A, 0x98, 0x96, 0x94, 0x92, 0x90, 0x8E, 0x8C, 0x8A, 0x88, 0x00, 0x00, 0x00);
+  mode00.pattern[0] = Pattern(PATTERN_DOPS,      12, 0x01, 0x08, 0x01, 0x0C, 0x01, 0x10, 0x01, 0x14, 0x01, 0x18, 0x01, 0x1C, 0x00, 0x00, 0x00, 0x00);
+  mode00.pattern[1] = Pattern(PATTERN_DASHDOPS,  13, 0x01, 0x9E, 0x9C, 0x9A, 0x98, 0x96, 0x94, 0x92, 0x90, 0x8E, 0x8C, 0x8A, 0x88, 0x00, 0x00, 0x00);
 
   mode01.accel_mode = AMODE_SPEED;
   mode01.accel_sens = ASENS_MEDIUM;
-  mode01.prime[0] = Prime(PRIME_BLINKE,     7, 0x01, 0xC7, 0xC6, 0xC5, 0xC4, 0xC3, 0xC2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode01.prime[1] = Prime(PRIME_STROBIE,    8, 0x0A, 0x0D, 0x10, 0x13, 0x16, 0x19, 0x1C, 0x1F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode01.pattern[0] = Pattern(PATTERN_BLINKE,     7, 0x01, 0xC7, 0xC6, 0xC5, 0xC4, 0xC3, 0xC2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode01.pattern[1] = Pattern(PATTERN_STROBIE,    8, 0x0A, 0x0D, 0x10, 0x13, 0x16, 0x19, 0x1C, 0x1F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode02.accel_mode = AMODE_SPEED;
   mode02.accel_sens = ASENS_HIGH;
-  mode02.prime[0] = Prime(PRIME_HYPER,      3, 0x0E, 0x1A, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode02.prime[1] = Prime(PRIME_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode02.pattern[0] = Pattern(PATTERN_HYPER,      3, 0x0E, 0x1E, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode02.pattern[1] = Pattern(PATTERN_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode03.accel_mode = AMODE_TILTX;
   mode03.accel_sens = ASENS_LOW;
-  mode03.prime[0] = Prime(PRIME_EDGE,      12, 0x1E, 0x16, 0x19, 0x88, 0x9F, 0x9E, 0x9D, 0x9C, 0xDB, 0xDA, 0xDA, 0xDA, 0x00, 0x00, 0x00, 0x00);
-  mode03.prime[1] = Prime(PRIME_EDGE,      12, 0x16, 0x5E, 0x5B, 0x94, 0x95, 0x96, 0x97, 0x98, 0xD9, 0xDA, 0xDA, 0xDA, 0x00, 0x00, 0x00, 0x00);
+  mode03.pattern[0] = Pattern(PATTERN_EDGE,      12, 0x1E, 0x16, 0x19, 0x88, 0x9F, 0x9E, 0x9D, 0x9C, 0xDB, 0xDA, 0xDA, 0xDA, 0x00, 0x00, 0x00, 0x00);
+  mode03.pattern[1] = Pattern(PATTERN_EDGE,      12, 0x16, 0x5E, 0x5B, 0x94, 0x95, 0x96, 0x97, 0x98, 0xD9, 0xDA, 0xDA, 0xDA, 0x00, 0x00, 0x00, 0x00);
 
   mode04.accel_mode = AMODE_TILTX;
   mode04.accel_sens = ASENS_MEDIUM;
-  mode04.prime[0] = Prime(PRIME_TRACER,     9, 0xC2, 0x48, 0x4B, 0x4E, 0x51, 0x54, 0x57, 0x5A, 0x5D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode04.prime[1] = Prime(PRIME_TRACER,     9, 0xC6, 0x48, 0x4B, 0x4E, 0x51, 0x54, 0x57, 0x5A, 0x5D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode04.pattern[0] = Pattern(PATTERN_TRACER,     9, 0xC2, 0x48, 0x4B, 0x4E, 0x51, 0x54, 0x57, 0x5A, 0x5D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode04.pattern[1] = Pattern(PATTERN_TRACER,     9, 0xC6, 0x48, 0x4B, 0x4E, 0x51, 0x54, 0x57, 0x5A, 0x5D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode05.accel_mode = AMODE_TILTX;
   mode05.accel_sens = ASENS_HIGH;
-  mode05.prime[0] = Prime(PRIME_CANDY,      8, 0x08, 0x0B, 0x08, 0x1D, 0x08, 0x0E, 0x08, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode05.prime[1] = Prime(PRIME_CANDY,      8, 0x18, 0x1B, 0x18, 0x15, 0x18, 0x1E, 0x18, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode05.pattern[0] = Pattern(PATTERN_CANDY,      8, 0x08, 0x0B, 0x08, 0x1D, 0x08, 0x0E, 0x08, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode05.pattern[1] = Pattern(PATTERN_CANDY,      8, 0x18, 0x1B, 0x18, 0x15, 0x18, 0x1E, 0x18, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode06.accel_mode = AMODE_TILTY;
   mode06.accel_sens = ASENS_LOW;
-  mode06.prime[0] = Prime(PRIME_CHASE,      5, 0x1A, 0x1D, 0x08, 0x0B, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode06.prime[1] = Prime(PRIME_CHASE,      5, 0x12, 0x15, 0x18, 0x1B, 0x1E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode06.pattern[0] = Pattern(PATTERN_CHASE,      5, 0x1A, 0x1D, 0x08, 0x0B, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode06.pattern[1] = Pattern(PATTERN_CHASE,      5, 0x12, 0x15, 0x18, 0x1B, 0x1E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode07.accel_mode = AMODE_TILTY;
   mode07.accel_sens = ASENS_MEDIUM;
-  mode07.prime[0] = Prime(PRIME_RIBBON,    12, 0x08, 0x0A, 0x00, 0x00, 0x10, 0x12, 0x00, 0x00, 0x18, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode07.prime[1] = Prime(PRIME_RIBBON,    12, 0x08, 0x00, 0x0C, 0x00, 0x10, 0x00, 0x14, 0x00, 0x18, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode07.pattern[0] = Pattern(PATTERN_RIBBON,    12, 0x08, 0x0A, 0x00, 0x00, 0x10, 0x12, 0x00, 0x00, 0x18, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode07.pattern[1] = Pattern(PATTERN_RIBBON,    12, 0x08, 0x00, 0x0C, 0x00, 0x10, 0x00, 0x14, 0x00, 0x18, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode08.accel_mode = AMODE_TILTY;
   mode08.accel_sens = ASENS_HIGH;
-  mode08.prime[0] = Prime(PRIME_COMET,      6, 0x1E, 0x1F, 0x08, 0x09, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode08.prime[1] = Prime(PRIME_COMET,      6, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode08.pattern[0] = Pattern(PATTERN_COMET,      5, 0x1E, 0x1F, 0x08, 0x09, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode08.pattern[1] = Pattern(PATTERN_COMET,      5, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode09.accel_mode = AMODE_FLIPZ;
   mode09.accel_sens = ASENS_LOW;
-  mode09.prime[0] = Prime(PRIME_PULSE,      6, 0x56, 0x00, 0x58, 0x00, 0x5A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode09.prime[1] = Prime(PRIME_PULSE,      6, 0x5E, 0x00, 0x48, 0x00, 0x4A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode09.pattern[0] = Pattern(PATTERN_PULSE,      6, 0x56, 0x00, 0x58, 0x00, 0x5A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode09.pattern[1] = Pattern(PATTERN_PULSE,      6, 0x5E, 0x00, 0x48, 0x00, 0x4A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode10.accel_mode = AMODE_FLIPZ;
   mode10.accel_sens = ASENS_MEDIUM;
-  mode10.prime[0] = Prime(PRIME_LEGO,       4, 0x48, 0x4A, 0x4C, 0x4D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode10.prime[1] = Prime(PRIME_LEGO,       4, 0x58, 0x5A, 0x5C, 0x5D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode10.pattern[0] = Pattern(PATTERN_LEGO,       4, 0x48, 0x4A, 0x4C, 0x4D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode10.pattern[1] = Pattern(PATTERN_LEGO,       4, 0x58, 0x5A, 0x5C, 0x5D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode11.accel_mode = AMODE_FLIPZ;
   mode11.accel_sens = ASENS_HIGH;
-  mode11.prime[0] = Prime(PRIME_MORPH,      4, 0x10, 0x18, 0x08, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode11.prime[1] = Prime(PRIME_MORPH,      4, 0x10, 0x08, 0x18, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode11.pattern[0] = Pattern(PATTERN_MORPH,      4, 0x10, 0x18, 0x08, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode11.pattern[1] = Pattern(PATTERN_MORPH,      4, 0x10, 0x08, 0x18, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode12.accel_mode = AMODE_OFF;
   mode12.accel_sens = ASENS_LOW;
-  mode12.prime[0] = Prime(PRIME_STROBIE,    2, 0x08, 0xD8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode12.prime[1] = Prime(PRIME_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode12.pattern[0] = Pattern(PATTERN_STROBIE,    2, 0x08, 0xD8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode12.pattern[1] = Pattern(PATTERN_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode13.accel_mode = AMODE_OFF;
   mode13.accel_sens = ASENS_LOW;
-  mode13.prime[0] = Prime(PRIME_STROBIE,    2, 0x18, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode13.prime[1] = Prime(PRIME_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode13.pattern[0] = Pattern(PATTERN_STROBIE,    2, 0x18, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode13.pattern[1] = Pattern(PATTERN_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode14.accel_mode = AMODE_OFF;
   mode14.accel_sens = ASENS_LOW;
-  mode14.prime[0] = Prime(PRIME_STROBIE,    2, 0x1A, 0xCE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode14.prime[1] = Prime(PRIME_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode14.pattern[0] = Pattern(PATTERN_STROBIE,    2, 0x1A, 0xCE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode14.pattern[1] = Pattern(PATTERN_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode15.accel_mode = AMODE_OFF;
   mode15.accel_sens = ASENS_LOW;
-  mode15.prime[0] = Prime(PRIME_STROBIE,    2, 0x0E, 0xDA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode15.prime[1] = Prime(PRIME_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode15.pattern[0] = Pattern(PATTERN_STROBIE,    2, 0x0E, 0xDA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode15.pattern[1] = Pattern(PATTERN_STROBE,     1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+  for (uint8_t b = 0; b < NUM_BUNDLES; b++) {
+    bundle_slots[b] = pgm_read_byte(&factory_bundle_slots[b]);
+    for (uint8_t s = 0; s < NUM_MODES; s++) {
+      bundles[b][s] = pgm_read_byte(&factory_bundles[b][s]);
+    }
+  }
 
   saveModes();
+  saveBundles();
+  EEPROM.update(VERSION_ADDR, EEPROM_VERSION);
 }
 
 void setup() {
@@ -462,14 +460,11 @@ void setup() {
   digitalWrite(PIN_LDO, HIGH);
 
   Serial.println(F("\nWelcome to Primer!"));
-  if (current_version != EEPROM.read(VERSION_ADDR)) {
+  if (EEPROM_VERSION != EEPROM.read(VERSION_ADDR)) {
     Serial.println(F("Version mismatch. Clearning EEPROM."));
-    clearMemory();
-    Serial.print(F("Writing factory settings v ")); Serial.print(current_version); Serial.println(F(" to EEPROM."));
-    resetModes();
-    saveBundles();
+    resetMemory();
   } else {
-    Serial.print(F("Version match. Reading saved settings v ")); Serial.print(current_version); Serial.println(F(" from EEPROM."));
+    Serial.print(F("Version match. Reading saved settings v ")); Serial.print(EEPROM_VERSION); Serial.println(F(" from EEPROM."));
     loadModes();
     loadBundles();
   }
@@ -503,7 +498,6 @@ void loop() {
     fzg = translateAccel(zg);
   } else if (accel_counter == 4) {
     if (button_state < 10 || button_state >= 70) mode->updateAccel(fxg, fyg, fzg);
-  } else {
   }
   accel_counter++;
 
@@ -521,10 +515,10 @@ void loop() {
       case CONFIG_PALETTE1:
         r = 0; g = 0; b = 255;
         break;
-      case CONFIG_PRIME0:
+      case CONFIG_PATTERN0:
         r = 255; g = 0; b = 255;
         break;
-      case CONFIG_PRIME1:
+      case CONFIG_PATTERN1:
         r = 0; g = 255; b = 255;
         break;
       case CONFIG_ACC_MODE:
@@ -535,7 +529,7 @@ void loop() {
         break;
     }
   } else if (button_state < 30) {
-    unpackColor(mode->prime[mode->cur_variant].colors[mode->edit_color], r, g, b);
+    unpackColor(mode->pattern[mode->cur_variant].colors[mode->edit_color], r, g, b);
   } else if (button_state < 50) {
     mode->render(r, g, b);
   } else if (button_state < 60) {
@@ -576,7 +570,7 @@ void loop() {
     r = 0; g = 0; b = 0;
   }
 
-  if (button_state < 10 && bpm_enabled && bpm_tracker > bpm_trigger) {
+  if (button_state == S_PLAY_OFF && bpm_enabled && bpm_tracker > bpm_trigger) {
     incMode();
     Serial.print(F("bpm next mode: ")); printCurMode(); Serial.println();
   }
@@ -588,11 +582,8 @@ void loop() {
 void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
   for (uint8_t i = 0; i < flashes; i++) {
     for (uint8_t j = 0; j < 100; j++) {
-      if (j < 50) {
-        writeFrame(r, g, b);
-      } else {
-        writeFrame(0, 0, 0);
-      }
+      if (j < 50) { writeFrame(r, g, b); }
+      else {        writeFrame(0, 0, 0); }
     }
   }
   since_trans += flashes * 100;
@@ -698,8 +689,8 @@ void printPalette() {
 void printPaletteSlot() {
   printPalette();
   Serial.print(F(" slot ")); Serial.print(mode->edit_color + 1);
-  Serial.print(F(": i-")); Serial.print(mode->prime[mode->cur_variant].colors[mode->edit_color] & 0b00111111, HEX);
-  Serial.print(F(" s-")); Serial.print(mode->prime[mode->cur_variant].colors[mode->edit_color] >> 6);
+  Serial.print(F(": i-")); Serial.print(mode->pattern[mode->cur_variant].colors[mode->edit_color] & 0b00111111, HEX);
+  Serial.print(F(" s-")); Serial.print(mode->pattern[mode->cur_variant].colors[mode->edit_color] >> 6);
 }
 
 void printAccMode() {
@@ -738,57 +729,57 @@ void printAccSensitivity() {
   }
 }
 
-void printPrime() {
+void printPattern() {
   Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
-  if (mode->cur_variant == 0) { Serial.print(F(" prime A: ")); }
-  else {                        Serial.print(F(" prime B: ")); }
-  switch (mode->prime[mode->cur_variant].pattern) {
-    case PRIME_STROBE:
+  if (mode->cur_variant == 0) { Serial.print(F(" pattern A: ")); }
+  else {                        Serial.print(F(" pattern B: ")); }
+  switch (mode->pattern[mode->cur_variant].pattern) {
+    case PATTERN_STROBE:
       Serial.print(F("STROBE"));
       break;
-    case PRIME_HYPER:
+    case PATTERN_HYPER:
       Serial.print(F("HYPER STROBE"));
       break;
-    case PRIME_DOPS:
+    case PATTERN_DOPS:
       Serial.print(F("DOPS"));
       break;
-    case PRIME_STROBIE:
+    case PATTERN_STROBIE:
       Serial.print(F("STROBIE"));
       break;
-    case PRIME_PULSE:
+    case PATTERN_PULSE:
       Serial.print(F("PULSE"));
       break;
-    case PRIME_SEIZURE:
+    case PATTERN_SEIZURE:
       Serial.print(F("SEIZURE STROBE"));
       break;
-    case PRIME_TRACER:
+    case PATTERN_TRACER:
       Serial.print(F("TRACER"));
       break;
-    case PRIME_DASHDOPS:
+    case PATTERN_DASHDOPS:
       Serial.print(F("DASH DOPS"));
       break;
-    case PRIME_BLINKE:
+    case PATTERN_BLINKE:
       Serial.print(F("BLINK-E"));
       break;
-    case PRIME_EDGE:
+    case PATTERN_EDGE:
       Serial.print(F("EDGE"));
       break;
-    case PRIME_LEGO:
+    case PATTERN_LEGO:
       Serial.print(F("LEGO"));
       break;
-    case PRIME_CHASE:
+    case PATTERN_CHASE:
       Serial.print(F("CHASE"));
       break;
-    case PRIME_MORPH:
+    case PATTERN_MORPH:
       Serial.print(F("MORPH STROBE"));
       break;
-    case PRIME_RIBBON:
+    case PATTERN_RIBBON:
       Serial.print(F("RIBBON"));
       break;
-    case PRIME_COMET:
+    case PATTERN_COMET:
       Serial.print(F("COMET STROBE"));
       break;
-    default: // case PRIME_CANDY:
+    default: // case PATTERN_CANDY:
       Serial.print(F("CANDY STROBE"));
       break;
   }
@@ -811,7 +802,7 @@ void handlePress(bool pressed) {
       break;
 
     case S_PLAY_PRESSED:
-      if (since_trans > SHORT_HOLD) {
+      if (since_trans >= SHORT_HOLD) {
         new_state = S_PLAY_SLEEP_WAIT;
       } else if (!pressed) {
         if (conjure) {
@@ -830,28 +821,12 @@ void handlePress(bool pressed) {
         Serial.print(F("sleep... "));
         flash(128, 128, 128, 5);
       }
-      if (since_trans > LONG_HOLD) {
-        new_state = S_PLAY_CONJURE_WAIT;
+      if (since_trans >= LONG_HOLD) {
+        new_state = S_PLAY_CONFIG_WAIT;
       } else if (!pressed) {
         Serial.println(F("sleeping"));
         enterSleep();
         new_state = S_WAKEUP_WAIT;
-      }
-      break;
-
-    case S_PLAY_CONJURE_WAIT:
-      if (since_trans == 0) {
-        Serial.print(F("toggle conjure... "));
-        flash(0, 0, 128, 5);
-      }
-      if (since_trans > LONG_HOLD) {
-        new_state = S_PLAY_CONFIG_WAIT;
-      } else if (!pressed) {
-        conjure = !conjure;
-        conjure_toggle = false;
-        if (conjure) { Serial.println(F("conjure on")); }
-        else {         Serial.println(F("conjure off")); }
-        new_state = S_PLAY_OFF;
       }
       break;
 
@@ -860,13 +835,29 @@ void handlePress(bool pressed) {
         Serial.print(F("config... "));
         flash(128, 128, 0, 5);
       }
-      if (since_trans > LONG_HOLD) {
-        new_state = S_PLAY_SLEEP_WAIT;
+      if (since_trans >= LONG_HOLD) {
+        new_state = S_PLAY_CONJURE_WAIT;
       } else if (!pressed) {
         Serial.print(F("config: mode ")); printCurMode(); Serial.println();
-        mode->init();
         mode->edit_color = 0;
-        new_state = S_CONFIG_SELECT_OFF;
+        config_state = CONFIG_PALETTE0;
+        new_state = S_CONFIG_MENU_OFF;
+      }
+      break;
+
+    case S_PLAY_CONJURE_WAIT:
+      if (since_trans == 0) {
+        Serial.print(F("toggle conjure... "));
+        flash(0, 0, 128, 5);
+      }
+      if (since_trans >= LONG_HOLD) {
+        new_state = S_PLAY_SLEEP_WAIT;
+      } else if (!pressed) {
+        conjure = !conjure;
+        conjure_toggle = false;
+        if (conjure) { Serial.println(F("conjure on")); }
+        else {         Serial.println(F("conjure off")); }
+        new_state = S_PLAY_OFF;
       }
       break;
 
@@ -884,70 +875,56 @@ void handlePress(bool pressed) {
     //******************************************************
     //** CONFIG SELECT *************************************
     //******************************************************
-    case S_CONFIG_SELECT_OFF:
+    case S_CONFIG_MENU_OFF:
       if (since_trans == 0) {
         printConfigMode();
       }
 
       if (pressed && since_trans > PRESS_DELAY) {
-        new_state = S_CONFIG_SELECT_PRESSED;
+        new_state = S_CONFIG_MENU_PRESSED;
       }
       break;
 
-    case S_CONFIG_SELECT_PRESSED:
+    case S_CONFIG_MENU_PRESSED:
       if (!pressed) {
         config_state = (config_state + 1) % 6;
-        new_state = S_CONFIG_SELECT_OFF;
-      } else if (since_trans > SHORT_HOLD) {
-        new_state = S_CONFIG_SELECT_EDIT_WAIT;
+        new_state = S_CONFIG_MENU_OFF;
+      } else if (since_trans >= SHORT_HOLD) {
+        new_state = S_CONFIG_MENU_EDIT_WAIT;
       }
       break;
 
-    case S_CONFIG_SELECT_EDIT_WAIT:
+    case S_CONFIG_MENU_EDIT_WAIT:
       if (since_trans == 0) {
         Serial.print(F("will enter config... "));
         flash(128, 128, 0, 5);
       }
       if (!pressed) {
         Serial.print(F("configuring: "));
-        switch (config_state) {
-          case CONFIG_PALETTE0:
-            mode->cur_variant = 0;
-            printPaletteSlot();
-            new_state = S_COLOR_SELECT_OFF;
-            break;
-          case CONFIG_PALETTE1:
-            mode->cur_variant = 1;
-            printPaletteSlot();
-            new_state = S_COLOR_SELECT_OFF;
-            break;
-          case CONFIG_PRIME0:
-            mode->cur_variant = 0;
-            printPrime();
-            new_state = S_PRIME_SELECT_OFF;
-            break;
-          case CONFIG_PRIME1:
-            mode->cur_variant = 1;
-            printPrime();
-            new_state = S_PRIME_SELECT_OFF;
-            break;
-          case CONFIG_ACC_MODE:
-            printAccMode();
-            new_state = S_ACC_MODE_SELECT_OFF;
-            break;
-          default: // case CONFIG_ACC_SENS:
-            printAccSensitivity();
-            new_state = S_ACC_SENS_SELECT_OFF;
-            break;
+        if (config_state < 2) {
+          mode->edit_color = 0;
+          mode->cur_variant = config_state % 2;
+          printPaletteSlot();
+          new_state = S_COLOR_SELECT_OFF;
+        } else if (config_state < 4) {
+          mode->cur_variant = config_state % 2;
+          printPattern();
+          new_state = S_PATTERN_SELECT_OFF;
+        } else if (config_state == 5) {
+          printAccMode();
+          new_state = S_ACC_MODE_SELECT_OFF;
+        } else {
+          printAccSensitivity();
+          new_state = S_ACC_SENS_SELECT_OFF;
         }
         Serial.println();
         mode->init();
-      } else if (since_trans > LONG_HOLD) {
-        new_state = S_CONFIG_SELECT_EXIT_WAIT;
+      } else if (since_trans >= LONG_HOLD) {
+        new_state = S_CONFIG_MENU_EXIT_WAIT;
       }
       break;
 
-    case S_CONFIG_SELECT_EXIT_WAIT:
+    case S_CONFIG_MENU_EXIT_WAIT:
       if (since_trans == 0) {
         Serial.print(F("will exit... "));
         flash(128, 128, 128, 5);
@@ -973,7 +950,7 @@ void handlePress(bool pressed) {
       break;
 
     case S_COLOR_SELECT_PRESSED:
-      if (since_trans > LONG_HOLD) {
+      if (since_trans >= SHORT_HOLD) {
         Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
         flash(64, 64, 64, 5);
         new_state = S_COLOR_SELECT_SHADE_WAIT;
@@ -989,11 +966,10 @@ void handlePress(bool pressed) {
         Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
         flash(64, 64, 64, 5);
       }
-      if (since_trans > LONG_HOLD) {
+      if (since_trans >= LONG_HOLD) {
         mode->changeShade();
-        since_trans = 0;
       } else if (!pressed) {
-        mode->prime[mode->cur_variant].num_colors = mode->edit_color + 1;
+        mode->pattern[mode->cur_variant].num_colors = mode->edit_color + 1;
         Serial.print(F("selected: ")); printPaletteSlot(); Serial.println();
         new_state = S_COLOR_CONFIRM_OFF;
       }
@@ -1012,17 +988,15 @@ void handlePress(bool pressed) {
       break;
 
     case S_COLOR_CONFIRM_PRESSED:
-      if (since_trans > LONG_HOLD) {
+      if (since_trans >= LONG_HOLD) {
         new_state = S_COLOR_CONFIRM_REJECT_WAIT;
       } else if (!pressed) {
         mode->edit_color++;
         Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
         if (mode->edit_color == PALETTE_SIZE) {
-          mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
-          mode->init();
-          Serial.print(F("saving: ")); Serial.print(mode->prime[mode->cur_variant].num_colors); Serial.println(F(" slots"));
+          Serial.print(F("saving: ")); Serial.print(mode->pattern[mode->cur_variant].num_colors); Serial.println(F(" slots"));
           flash(128, 128, 128, 5);
-          new_state = S_PLAY_OFF;
+          new_state = S_SAVE_MODE;
         } else {
           new_state = S_COLOR_SELECT_OFF;
         }
@@ -1034,7 +1008,7 @@ void handlePress(bool pressed) {
         Serial.print(F("will reject... "));
         flash(128, 0, 0, 5);
       }
-      if (since_trans > LONG_HOLD) {
+      if (since_trans >= LONG_HOLD) {
         new_state = S_COLOR_CONFIRM_EXIT_WAIT;
       } else if (!pressed) {
         Serial.println(F("reject"));
@@ -1042,7 +1016,7 @@ void handlePress(bool pressed) {
           new_state = S_COLOR_SELECT_OFF;
         } else {
           mode->edit_color--;
-          mode->prime[mode->cur_variant].num_colors--;
+          mode->pattern[mode->cur_variant].num_colors--;
           new_state = S_COLOR_CONFIRM_OFF;
         }
       }
@@ -1055,48 +1029,44 @@ void handlePress(bool pressed) {
       }
       if (!pressed) {
         Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
-        mode->prime[mode->cur_variant].num_colors = mode->edit_color + 1;
-        mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
-        mode->init();
-        Serial.print(F("saving: ")); Serial.print(mode->prime[mode->cur_variant].num_colors); Serial.println(F(" slots"));
-        new_state = S_PLAY_OFF;
+        mode->pattern[mode->cur_variant].num_colors = mode->edit_color + 1;
+        Serial.print(F("saving: ")); Serial.print(mode->pattern[mode->cur_variant].num_colors); Serial.println(F(" slots"));
+        new_state = S_SAVE_MODE;
       }
       break;
 
 
     //******************************************************
-    //** PRIME SELECT **************************************
+    //** PATTERN SELECT ************************************
     //******************************************************
-    case S_PRIME_SELECT_OFF:
+    case S_PATTERN_SELECT_OFF:
       if (since_trans == 0) {
-        Serial.print(F("editing: ")); printPrime(); Serial.println();
+        Serial.print(F("editing: ")); printPattern(); Serial.println();
       }
       if (pressed && since_trans > PRESS_DELAY) {
-        new_state = S_PRIME_SELECT_PRESSED;
+        new_state = S_PATTERN_SELECT_PRESSED;
       }
       break;
 
-    case S_PRIME_SELECT_PRESSED:
+    case S_PATTERN_SELECT_PRESSED:
       if (since_trans >= LONG_HOLD) {
-        new_state = S_PRIME_SELECT_WAIT;
+        new_state = S_PATTERN_SELECT_WAIT;
       } else if (!pressed) {
-        mode->prime[mode->cur_variant].pattern = (mode->prime[mode->cur_variant].pattern + 1) % NUM_PRIMES;
-        Serial.print(F("switched: ")); printPrime(); Serial.println();
+        mode->pattern[mode->cur_variant].pattern = (mode->pattern[mode->cur_variant].pattern + 1) % NUM_PATTERNS;
+        Serial.print(F("switched: ")); printPattern(); Serial.println();
         mode->init();
-        new_state = S_PRIME_SELECT_OFF;
+        new_state = S_PATTERN_SELECT_OFF;
       }
       break;
 
-    case S_PRIME_SELECT_WAIT:
+    case S_PATTERN_SELECT_WAIT:
       if (since_trans == 0) {
         Serial.print(F("will save.. "));
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
-        mode->init();
-        Serial.print(F("saving: ")); printPrime(); Serial.println();
-        new_state = S_PLAY_OFF;
+        Serial.print(F("saving: ")); printPattern(); Serial.println();
+        new_state = S_SAVE_MODE;
       }
       break;
 
@@ -1129,10 +1099,8 @@ void handlePress(bool pressed) {
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
-        mode->init();
         Serial.print(F("saved: ")); printAccMode(); Serial.println();
-        new_state = S_PLAY_OFF;
+        new_state = S_SAVE_MODE;
       }
       break;
 
@@ -1165,10 +1133,8 @@ void handlePress(bool pressed) {
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
-        mode->init();
         Serial.print(F("saved: ")); printAccSensitivity(); Serial.println();
-        new_state = S_PLAY_OFF;
+        new_state = S_SAVE_MODE;
       }
       break;
 
@@ -1184,7 +1150,7 @@ void handlePress(bool pressed) {
       if (!pressed) {
         bpm_enabled = false;
         new_state = S_BUNDLE_SELECT_OFF;
-      } else if (since_trans > 5000) {
+      } else if (since_trans > 6000) {
         new_state = S_MASTER_RESET_WAIT;
       }
       break;
@@ -1199,7 +1165,7 @@ void handlePress(bool pressed) {
       break;
 
     case S_BUNDLE_SELECT_PRESSED:
-      if (since_trans >= LONG_HOLD) {
+      if (since_trans >= SHORT_HOLD) {
         new_state = S_BUNDLE_SELECT_WAIT;
       } else if (!pressed) {
         cur_bundle = (cur_bundle + 1) % NUM_BUNDLES;
@@ -1246,6 +1212,7 @@ void handlePress(bool pressed) {
         times_clicked = 0;
         bpm_pressed = 0;
         Serial.println(F("setting bpm"));
+        bpm_trigger = 0;
         new_state = S_BPM_SET_OFF;
       }
       break;
@@ -1254,12 +1221,12 @@ void handlePress(bool pressed) {
       if (pressed && since_trans > PRESS_DELAY) {
         Serial.print(F("click #")); Serial.print(times_clicked);
         if (times_clicked != 0) {
-          total_time += bpm_pressed;
+          bpm_trigger += bpm_pressed;
           Serial.print(F(" this click ")); Serial.print(bpm_pressed);
-          Serial.print(F(" total ")); Serial.print(total_time);
+          Serial.print(F(" total ")); Serial.print(bpm_trigger);
         }
         if (times_clicked >= 4) {
-          bpm_trigger = total_time * 4;
+          bpm_trigger *= 4;
           Serial.print(F(" bpm trigger is ")); Serial.print(bpm_trigger);
         }
         Serial.println();
@@ -1267,6 +1234,7 @@ void handlePress(bool pressed) {
         bpm_pressed = 0;
         new_state = S_BPM_SET_PRESSED;
       } else if (since_trans > 20000) {
+        bpm_trigger = 64000;
         new_state = S_PLAY_OFF;
       }
       break;
@@ -1289,12 +1257,9 @@ void handlePress(bool pressed) {
         flash(128, 0, 0, 5);
       }
       if (!pressed) {
-        clearMemory();
-        resetModes();
-        saveModes();
-        saveBundles();
-        resetMode();
         Serial.println(F("master reset"));
+        resetMemory();
+        resetMode();
         new_state = S_PLAY_OFF;
       }
       break;
@@ -1336,10 +1301,8 @@ void handlePress(bool pressed) {
         Serial.print(F("set: ")); printCurMode(); Serial.println();
         if (bundle_idx == NUM_MODES) {
           bundle_slots[cur_bundle] = bundle_idx;
-          saveBundles();
-          resetMode();
           Serial.print(F("saved: ")); printCurBundle(); Serial.println();
-          new_state = S_PLAY_OFF;
+          new_state = S_SAVE_BUNDLES;;
         } else {
           mode = modes[bundles[cur_bundle][bundle_idx]];
           mode->init();
@@ -1355,13 +1318,23 @@ void handlePress(bool pressed) {
       }
       if (!pressed) {
         bundle_slots[cur_bundle] = bundle_idx + 1;
-        saveBundles();
-        resetMode();
         Serial.print(F("saved: ")); printCurBundle(); Serial.println();
-        new_state = S_PLAY_OFF;
+        new_state = S_SAVE_BUNDLES;
       }
       break;
 
+
+    case S_SAVE_MODE:
+      mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
+      mode->init();
+      new_state = S_PLAY_OFF;
+      break;
+
+    case S_SAVE_BUNDLES:
+      saveBundles();
+      resetMode();
+      new_state = S_PLAY_OFF;
+      break;
 
     default:
       new_state = S_PLAY_OFF;
@@ -1386,11 +1359,11 @@ void printConfigMode() {
     case CONFIG_PALETTE1:
       Serial.println(F(" configure palette B"));
       break;
-    case CONFIG_PRIME0:
-      Serial.println(F(" configure prime A"));
+    case CONFIG_PATTERN0:
+      Serial.println(F(" configure pattern A"));
       break;
-    case CONFIG_PRIME1:
-      Serial.println(F(" configure prime B"));
+    case CONFIG_PATTERN1:
+      Serial.println(F(" configure pattern B"));
       break;
     case CONFIG_ACC_MODE:
       Serial.println(F(" configure acc mode"));

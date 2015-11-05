@@ -1,11 +1,24 @@
 # Primer
 
-Primer is the first OSM firmware fully customizable on-chip.
+Primer is a fully customizable firmware for the Open Source Microlight OSMxyz.
+
+
+## Features
+
+* 16 selectable strobe animation patterns
+* 16 color slots per animation pattern
+* 31 color + blank palette with 4 shading levels per color
+* 16 fully customizable mode slots with 2 patterns per slot
+* 4 accelerometer actions with 3 sensitivity levels for switching between patterns
+* 4 bundles for customizing mode play order
+* Tap-to-set BPM trigger for auto cycling of modes
+* Conjuring mode (single-press on/off) configurable for every mode slot
+* Easy to use customization interface
 
 
 ##  Installation
 
-### Packaged release on Mac OS X
+### Packaged release on Mac OS X (unavailable at the moment)
 
 *  Download the latest .dmg from the releases tab.
 *  Open the .dmg and double-click on "Upload .hex"
@@ -19,94 +32,86 @@ Primer is the first OSM firmware fully customizable on-chip.
   * Be sure to select the correct .hex file.
 
 
-## Features
-
-* **12** Fully Customizable
-* **2** Variants Per Mode
-* **4** Accelerometer Triggers to Switch Variants
-* Each With **3** Sensitivity Levels
-* **16** LED Animations For Your Variations
-* **Up to 12** Colors Per Variation
-* **62** Color + Blank Palette with **4** Shading Levels.
-* **4** Customizable Bundles For Custom Mode Playlists
-* Enable Conjuring Mode (Toggle On/Off With 1 Press) From Any Mode
-* Easy To Use Customization Interface
-
-
 ## Controls
 
 **Off**
 * Press - Turn on. Go to **Play**.
-* Hold 1.5s - Go to **Bundle Select**. Flashes blue.
+* Hold 1.0s - Go to **Bundle Select**. Flashes blue.
+* Hold 4.0s - **Master Reset** (restore factory settings) and go to **Play**. Flashes red.
 
 **Bundle Select**
 * Press - Cycle bundle.
-* Hold 1.5s - Selects current bundle. Go to **Play**. Flashes blue.
-* Hold 3.0s - Go to **Bundle Edit**. Flashes yellow.
+* Hold 0.5s - Selects current bundle. Go to **Play**. Flashes blue.
+* Hold 1.5s - Go to **Bundle Edit**. Flashes yellow.
+* Hold 2.5s - Go to **BPM Set**. Flahses green.
 
 **Bundle Edit**
 * Press - Cycle bundle slot to next mode.
-* Hold 1.5s - Sets current bundle slot to selected mode. Cycles to next bundle slot. Flashes magenta.
-* Hold 3.0s - Saves bundle with current bundle slot as the end of the bundle. Go to **Play**. Flashes white.
+* Hold 1.0s - Sets current bundle slot to selected mode. Cycles to next bundle slot. Flashes magenta.
+* Hold 2.0s - Saves bundle with current bundle slot as the end of the bundle. Go to **Play**. Flashes white.
+
+**BPM Set**
+* Press 5x to set BPM timer. After the 5th press, the BPM is set and the light will go to **Play**.
+* To deactivate BPM switching, select a bundle (can be the same bundle).
 
 **Play (Normal Mode)**
 * Press - Cycle to next mode.
-* Hold 1.0s - Put light to sleep. Flashes white.
+* Hold 0.5s - Put light to sleep. Flashes white.
+* Hold 1.5s - Go to **Config Select**. Flashes yellow.
 * Hold 2.5s - Enables **Conjure Mode**. Flashes blue.
-* Hold 4.0s - Go to **Config Select**. Flashes yellow.
+* Every second you hold after this will cycle through sleep, config, and conjure options.
 
 **Play (Conjure Mode)**
 * Press - Toggle light on/off (processor still running).
-* Hold 1.0s - Turn off light and deactivate Conjure Mode. Flashes white.
+* Hold 0.5s - Turn off light and deactivate Conjure Mode. Flashes white.
+* Hold 1.5s - Go to **Config Select**. Flashes yellow.
 * Hold 2.5s - Disable **Conjure Mode**. Flashes blue.
-* Hold 4.0s - Go to **Config Select**. Flashes yellow.
+* Every second you hold after this will cycle through sleep, config, and conjure options.
 
 **Config Select**
 * Press - Cycle between configuration options. Color indicates what configuration mode will be selected.
-  * Palette A - red
-  * Palette B - blue
-  * Prime A - magenta
-  * Prime B - cyan
+  * Colors A - red
+  * Colors B - blue
+  * Pattern A - magenta
+  * Pattern B - cyan
   * Accelerometer mode - green
   * Accelerometer sensitivity - yellow
-* Hold 1.5s - Go to **Configure** for current configuration mode. Flashes yellow.
-* Hold 3.0s - Go to **Play**. Flashes white.
+* Hold 1.0s - Go to **Configure** for current configuration mode. Flashes yellow.
+* Hold 2.0s - Go to **Play**. Flashes white.
 
-**Config Palette**
+**Color Select**
 * Press - Cycle forward through palette options.
-* Dpress - Cycle backward through palette options.
-* Hold 1.5s - Select color. Flashes white.
-* Hold 1.5s more - Cycle to next shade. Flashes white.
-* Release after hold - Go to **Confirm Color**.
+* Hold 0.5s - Select color. Flashes white.
+* Every second you hold after the shade will cycle. On release, go to **Confirm Color**.
 
 **Confirm Color**
 * Press - Accept color.
-  * If last (12th) color slot, go to **Play** and save. Flashes white.
-  * Otherwise just go to next color slot.
-* Hold 1.5s - Reject color.
-  * If first color slot, go to **Config Palette**. Flashes red.
-  * Otherwise, go to **Confirm Color** for previous color slot. Flashes red.
-* Hold 3.0s - Accept and save. Sets current color slot as last color. Go to **Play**. Flashes white.
+  * If last color slot, save and go to **Play**. Flashes white.
+  * Otherwise, go to **Color Select** for the next color.
+* Hold 1.0s - Reject color.
+  * If first color slot, go to **Color Select** for the first color. Flashes red.
+  * Otherwise, go to **Confirm Color** for previous color. Flashes red.
+* Hold 2.0s - Accept, save, set current color slot as last color, and go to **Play**. Flashes white.
 
-**Config Prime**
+**Pattern Select**
 * Press - Cycles to next prime.
-* Hold 1.5s - Accept and save. Go to **Play**. Flashes white.
+* Hold 1.0s - Accept, save, and go to **Play**. Flashes white.
 
-**Config Accelerometer Mode**
+**Accelerometer Mode Select**
 * Press - Cycle to next accelerometer mode. Color indicates what mode will be selected.
   * Off - dim white
   * Speed - red
   * Tilt X - blue
   * Tilt Y - yellow
   * Flip Z - green
-* Hold 1.5s - Accept and save. Go to **Play**. Flashes white.
+* Hold 1.0s - Accept, save, and go to **Play**. Flashes white.
 
-**Config Accelerometer Sensitivity**
+**Accelerometer Sensitivity Select**
 * Press - Cycle to next accelerometer sensitivity. Color indicates what sensitivity will be selected.
   * Low - blue
   * Medium - magenta
   * High - red
-* Hold 1.5s - Accept and save. Go to **Play**. Flashes white.
+* Hold 1.0s - Accept, save, and go to **Play**. Flashes white.
 
 
 ## Palette
@@ -209,3 +214,15 @@ These images represent the default mode set of animations. 1 pixel represents 0.
 
 ### Mode 12
 ![Mode 12](pngs/mode12.png)
+
+### Mode 13
+![Mode 13](pngs/mode13.png)
+
+### Mode 14
+![Mode 14](pngs/mode14.png)
+
+### Mode 15
+![Mode 15](pngs/mode15.png)
+
+### Mode 16
+![Mode 16](pngs/mode16.png)
