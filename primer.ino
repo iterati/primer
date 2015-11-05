@@ -722,6 +722,7 @@ void handlePress(bool pressed) {
         mode->edit_color = 0;
         since_press = 0;
         transitioned = true;
+        config_state = CONFIG_PRIME0;
         button_state = S_CONFIG_SELECT_OFF;
       }
       break;
