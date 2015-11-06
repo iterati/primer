@@ -215,6 +215,7 @@ const PROGMEM uint8_t factory_bundles[NUM_BUNDLES][NUM_MODES] = {
 };
 const PROGMEM uint8_t factory_bundle_slots[NUM_BUNDLES] = {16, 9, 16, 4};
 
+uint8_t cur_mode_idx = 0;
 uint8_t bundles[NUM_BUNDLES][NUM_MODES];
 uint8_t bundle_slots[NUM_BUNDLES];
 uint8_t cur_bundle = 0;
@@ -351,7 +352,7 @@ void clearMemory() {
 }
 
 void resetMemory() {
-  Serial.print(F("Writing factory settings v ")); Serial.print(EEPROM_VERSION); Serial.println(F(" to EEPROM."));
+  //Serial.print(F("Writing factory settings v ")); Serial.print(EEPROM_VERSION); Serial.println(F(" to EEPROM."));
   clearMemory();
 
   mode00.accel_mode = AMODE_SPEED;
@@ -459,12 +460,12 @@ void setup() {
   pinMode(PIN_LDO, OUTPUT);
   digitalWrite(PIN_LDO, HIGH);
 
-  Serial.println(F("\nWelcome to Primer!"));
+  //Serial.println(F("\nWelcome to Primer!"));
   if (EEPROM_VERSION != EEPROM.read(VERSION_ADDR)) {
-    Serial.println(F("Version mismatch. Clearning EEPROM."));
+    //Serial.println(F("Version mismatch. Clearning EEPROM."));
     resetMemory();
   } else {
-    Serial.print(F("Version match. Reading saved settings v ")); Serial.print(EEPROM_VERSION); Serial.println(F(" from EEPROM."));
+    //Serial.print(F("Version match. Reading saved settings v ")); Serial.print(EEPROM_VERSION); Serial.println(F(" from EEPROM."));
     loadModes();
     loadBundles();
   }
@@ -484,26 +485,61 @@ void setup() {
   resetMode();
 }
 
-void readMode() {
-  mode->pattern[0].pattern = Serial.read();
-  /* modes[idx]->accel_mode = Serial.read(); */
-  /* modes[idx]->accel_sens = Serial.read(); */
-  /* for (uint8_t v = 0; v < 2; v++) { */
-    /* modes[idx]->pattern[v].pattern = Serial.read(); */
-    /* modes[idx]->pattern[v].num_colors = Serial.read(); */
-    /* for (uint8_t s = 0; s < 16; s++) { */
-    /*   modes[idx]->pattern[v].colors[s][0] = Serial.read(); */
-    /*   modes[idx]->pattern[v].colors[s][1] = Serial.read(); */
-    /*   modes[idx]->pattern[v].colors[s][2] = Serial.read(); */
-    /* } */
-  /* } */
+void readMode(uint8_t addr) {
+  uint8_t in = Serial.read();
+  if (addr == 0) {
+    mode->accel_mode = in;
+  } else if (addr == 1) {
+    mode->accel_sens = in;
+  } else if (addr == 2) {
+    mode->pattern[0].pattern = in;
+  } else if (addr == 3) {
+    mode->pattern[0].num_colors = in;
+  } else if (addr < 20) {
+    mode->pattern[0].colors[addr - 4] = in;
+  } else if (addr == 20) {
+    mode->pattern[1].pattern = in;
+  } else if (addr == 21) {
+    mode->pattern[1].num_colors = in;
+  } else if (addr < 38) {
+    mode->pattern[1].colors[addr - 22] = in;
+  }
+}
+
+void writeMode(uint8_t addr) {
+  uint8_t in = Serial.read();
+  if (addr == 0) {
+    Serial.write(mode->accel_mode);
+  } else if (addr == 1) {
+    Serial.write(mode->accel_sens);
+  } else if (addr == 2) {
+    Serial.write(mode->pattern[0].pattern);
+  } else if (addr == 3) {
+    Serial.write(mode->pattern[0].num_colors);
+  } else if (addr < 20) {
+    Serial.write(mode->pattern[0].colors[addr - 4]);
+  } else if (addr == 20) {
+    Serial.write(mode->pattern[1].pattern);
+  } else if (addr == 21) {
+    Serial.write(mode->pattern[1].num_colors);
+  } else if (addr < 38) {
+    Serial.write(mode->pattern[1].colors[addr - 22]);
+  }
 }
 
 void handleSerial() {
   if (Serial.available() >= 1) {
     switch (Serial.read()) {
-      case 'L':
-        readMode();
+      case 'M':
+        while (Serial.available() < 2 && limiter < 6400000) {} // Wait for full command
+        readMode(Serial.read());
+        break;
+      case 'R':
+        while (Serial.available() < 1 && limiter < 6400000) {}
+        writeMode(Serial.read());
+        break;
+      case 'S':
+        mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
         break;
       default:
         break;
@@ -600,7 +636,7 @@ void loop() {
 
   if (button_state == S_PLAY_OFF && bpm_enabled && bpm_tracker > bpm_trigger) {
     incMode();
-    Serial.print(F("bpm next mode: ")); printCurMode(); Serial.println();
+    //Serial.print(F("bpm next mode: ")); printCurMode(); Serial.println();
   }
 
   writeFrame(r, g, b);
@@ -628,20 +664,26 @@ void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
 
 void resetMode() {
   bundle_idx = 0;
-  mode = modes[bundles[cur_bundle][bundle_idx]];
+  cur_mode_idx = bundles[cur_bundle][bundle_idx];
+  mode = modes[cur_mode_idx];
   bpm_tracker = 0;
   mode->init();
   mode->cur_variant = 0;
   fxg = fyg = fzg = 0.0;
+  Serial.write(255);
+  Serial.write(cur_mode_idx);
 }
 
 void incMode() {
   bundle_idx = (bundle_idx + 1) % bundle_slots[cur_bundle];
-  mode = modes[bundles[cur_bundle][bundle_idx]];
+  cur_mode_idx = bundles[cur_bundle][bundle_idx];
+  mode = modes[cur_mode_idx];
   bpm_tracker = 0;
   mode->init();
   mode->cur_variant = 0;
   fxg = fyg = fzg = 0.0;
+  Serial.write(255);
+  Serial.write(cur_mode_idx);
 }
 
 
@@ -698,119 +740,119 @@ void accUpdate() {
 // **** BUTTON CODE ***************************************************
 // ********************************************************************
 void printCurBundle() {
-  Serial.print(F("bundle ")); Serial.print(cur_bundle + 1);
-  Serial.print(F(" slots-")); Serial.print(bundle_slots[cur_bundle]);
+  //Serial.print(F("bundle ")); Serial.print(cur_bundle + 1);
+  //Serial.print(F(" slots-")); Serial.print(bundle_slots[cur_bundle]);
 }
 
 void printCurMode() {
-  Serial.print(F("bundle ")); Serial.print(cur_bundle + 1);
-  Serial.print(F(" slot ")); Serial.print(bundle_idx + 1);
-  Serial.print(F(": mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+  //Serial.print(F("bundle ")); Serial.print(cur_bundle + 1);
+  //Serial.print(F(" slot ")); Serial.print(bundle_idx + 1);
+  //Serial.print(F(": mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
 }
 
 void printPalette() {
-  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
-  if (mode->cur_variant == 0) { Serial.print(F(" palette A")); }
-  else {                        Serial.print(F(" palette B")); }
+  //Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+  //if (mode->cur_variant == 0) { Serial.print(F(" palette A")); }
+  //else {                        Serial.print(F(" palette B")); }
 }
 
 void printPaletteSlot() {
-  printPalette();
-  Serial.print(F(" slot ")); Serial.print(mode->edit_color + 1);
-  Serial.print(F(": i-")); Serial.print(mode->pattern[mode->cur_variant].colors[mode->edit_color] & 0b00111111, HEX);
-  Serial.print(F(" s-")); Serial.print(mode->pattern[mode->cur_variant].colors[mode->edit_color] >> 6);
+  //printPalette();
+  //Serial.print(F(" slot ")); Serial.print(mode->edit_color + 1);
+  //Serial.print(F(": i-")); Serial.print(mode->pattern[mode->cur_variant].colors[mode->edit_color] & 0b00111111, HEX);
+  //Serial.print(F(" s-")); Serial.print(mode->pattern[mode->cur_variant].colors[mode->edit_color] >> 6);
 }
 
 void printAccMode() {
-  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx]);
-  switch (mode->accel_mode) {
-    case AMODE_SPEED:
-      Serial.print(F("accel mode: SPEED"));
-      break;
-    case AMODE_TILTX:
-      Serial.print(F("accel mode: TILTX"));
-      break;
-    case AMODE_TILTY:
-      Serial.print(F("accel mode: TILTY"));
-      break;
-    case AMODE_FLIPZ:
-      Serial.print(F("accel mode: FLIPZ"));
-      break;
-    default: // case AMODE_OFF
-      Serial.print(F("accel mode: OFF"));
-      break;
-  }
+  //Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx]);
+  //switch (mode->accel_mode) {
+  //  case AMODE_SPEED:
+  //    Serial.print(F("accel mode: SPEED"));
+  //    break;
+  //  case AMODE_TILTX:
+  //    Serial.print(F("accel mode: TILTX"));
+  //    break;
+  //  case AMODE_TILTY:
+  //    Serial.print(F("accel mode: TILTY"));
+  //    break;
+  //  case AMODE_FLIPZ:
+  //    Serial.print(F("accel mode: FLIPZ"));
+  //    break;
+  //  default: // case AMODE_OFF
+  //    Serial.print(F("accel mode: OFF"));
+  //    break;
+  //}
 }
 
 void printAccSensitivity() {
-  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx]);
-  switch (mode->accel_sens) {
-    case ASENS_LOW:
-      Serial.print(F("accel sensitivity: LOW"));
-      break;
-    case ASENS_MEDIUM:
-      Serial.print(F("accel sensitivity: MEDIUM"));
-      break;
-    default: // case ASENS_HIGH:
-      Serial.print(F("accel sensitivity: HIGH"));
-      break;
-  }
+  //Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx]);
+  //switch (mode->accel_sens) {
+  //  case ASENS_LOW:
+  //    Serial.print(F("accel sensitivity: LOW"));
+  //    break;
+  //  case ASENS_MEDIUM:
+  //    Serial.print(F("accel sensitivity: MEDIUM"));
+  //    break;
+  //  default: // case ASENS_HIGH:
+  //    Serial.print(F("accel sensitivity: HIGH"));
+  //    break;
+  //}
 }
 
 void printPattern() {
-  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
-  if (mode->cur_variant == 0) { Serial.print(F(" pattern A: ")); }
-  else {                        Serial.print(F(" pattern B: ")); }
-  switch (mode->pattern[mode->cur_variant].pattern) {
-    case PATTERN_STROBE:
-      Serial.print(F("STROBE"));
-      break;
-    case PATTERN_HYPER:
-      Serial.print(F("HYPER STROBE"));
-      break;
-    case PATTERN_DOPS:
-      Serial.print(F("DOPS"));
-      break;
-    case PATTERN_STROBIE:
-      Serial.print(F("STROBIE"));
-      break;
-    case PATTERN_PULSE:
-      Serial.print(F("PULSE"));
-      break;
-    case PATTERN_SEIZURE:
-      Serial.print(F("SEIZURE STROBE"));
-      break;
-    case PATTERN_TRACER:
-      Serial.print(F("TRACER"));
-      break;
-    case PATTERN_DASHDOPS:
-      Serial.print(F("DASH DOPS"));
-      break;
-    case PATTERN_BLINKE:
-      Serial.print(F("BLINK-E"));
-      break;
-    case PATTERN_EDGE:
-      Serial.print(F("EDGE"));
-      break;
-    case PATTERN_LEGO:
-      Serial.print(F("LEGO"));
-      break;
-    case PATTERN_CHASE:
-      Serial.print(F("CHASE"));
-      break;
-    case PATTERN_MORPH:
-      Serial.print(F("MORPH STROBE"));
-      break;
-    case PATTERN_RIBBON:
-      Serial.print(F("RIBBON"));
-      break;
-    case PATTERN_COMET:
-      Serial.print(F("COMET STROBE"));
-      break;
-    default: // case PATTERN_CANDY:
-      Serial.print(F("CANDY STROBE"));
-      break;
-  }
+  //Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+  //if (mode->cur_variant == 0) { Serial.print(F(" pattern A: ")); }
+  //else {                        Serial.print(F(" pattern B: ")); }
+  //switch (mode->pattern[mode->cur_variant].pattern) {
+  //  case PATTERN_STROBE:
+  //    Serial.print(F("STROBE"));
+  //    break;
+  //  case PATTERN_HYPER:
+  //    Serial.print(F("HYPER STROBE"));
+  //    break;
+  //  case PATTERN_DOPS:
+  //    Serial.print(F("DOPS"));
+  //    break;
+  //  case PATTERN_STROBIE:
+  //    Serial.print(F("STROBIE"));
+  //    break;
+  //  case PATTERN_PULSE:
+  //    Serial.print(F("PULSE"));
+  //    break;
+  //  case PATTERN_SEIZURE:
+  //    Serial.print(F("SEIZURE STROBE"));
+  //    break;
+  //  case PATTERN_TRACER:
+  //    Serial.print(F("TRACER"));
+  //    break;
+  //  case PATTERN_DASHDOPS:
+  //    Serial.print(F("DASH DOPS"));
+  //    break;
+  //  case PATTERN_BLINKE:
+  //    Serial.print(F("BLINK-E"));
+  //    break;
+  //  case PATTERN_EDGE:
+  //    Serial.print(F("EDGE"));
+  //    break;
+  //  case PATTERN_LEGO:
+  //    Serial.print(F("LEGO"));
+  //    break;
+  //  case PATTERN_CHASE:
+  //    Serial.print(F("CHASE"));
+  //    break;
+  //  case PATTERN_MORPH:
+  //    Serial.print(F("MORPH STROBE"));
+  //    break;
+  //  case PATTERN_RIBBON:
+  //    Serial.print(F("RIBBON"));
+  //    break;
+  //  case PATTERN_COMET:
+  //    Serial.print(F("COMET STROBE"));
+  //    break;
+  //  default: // case PATTERN_CANDY:
+  //    Serial.print(F("CANDY STROBE"));
+  //    break;
+  //}
 }
 
 void handlePress(bool pressed) {
@@ -820,9 +862,9 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_PLAY_OFF:
       if (since_trans == 0) {
-        if (bpm_enabled) { Serial.print(F("playing bpm: ")); }
-        else {             Serial.print(F("playing: ")); }
-        printCurMode(); Serial.println();
+        //if (bpm_enabled) { Serial.print(F("playing bpm: ")); }
+        //else {             Serial.print(F("playing: ")); }
+        //printCurMode(); Serial.println();
       }
       if (pressed && since_trans >= PRESS_DELAY) {
         new_state = S_PLAY_PRESSED;
@@ -835,8 +877,8 @@ void handlePress(bool pressed) {
       } else if (!pressed) {
         if (conjure) {
           conjure_toggle = !conjure_toggle;
-          if (conjure_toggle) { Serial.println(F("conjure: light off")); }
-          else {                Serial.println(F("conjure: light on")); }
+          //if (conjure_toggle) { Serial.println(F("conjure: light off")); }
+          //else {                Serial.println(F("conjure: light on")); }
         } else {
           incMode();
         }
@@ -846,13 +888,13 @@ void handlePress(bool pressed) {
 
     case S_PLAY_SLEEP_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("sleep... "));
+        //Serial.print(F("sleep... "));
         flash(128, 128, 128, 5);
       }
       if (since_trans >= LONG_HOLD) {
         new_state = S_PLAY_CONFIG_WAIT;
       } else if (!pressed) {
-        Serial.println(F("sleeping"));
+        //Serial.println(F("sleeping"));
         enterSleep();
         new_state = S_WAKEUP_WAIT;
       }
@@ -860,13 +902,13 @@ void handlePress(bool pressed) {
 
     case S_PLAY_CONFIG_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("config... "));
+        //Serial.print(F("config... "));
         flash(128, 128, 0, 5);
       }
       if (since_trans >= LONG_HOLD) {
         new_state = S_PLAY_CONJURE_WAIT;
       } else if (!pressed) {
-        Serial.print(F("config: mode ")); printCurMode(); Serial.println();
+        //Serial.print(F("config: mode ")); printCurMode(); Serial.println();
         mode->edit_color = 0;
         config_state = CONFIG_PALETTE0;
         new_state = S_CONFIG_MENU_OFF;
@@ -875,7 +917,7 @@ void handlePress(bool pressed) {
 
     case S_PLAY_CONJURE_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("toggle conjure... "));
+        //Serial.print(F("toggle conjure... "));
         flash(0, 0, 128, 5);
       }
       if (since_trans >= LONG_HOLD) {
@@ -883,8 +925,8 @@ void handlePress(bool pressed) {
       } else if (!pressed) {
         conjure = !conjure;
         conjure_toggle = false;
-        if (conjure) { Serial.println(F("conjure on")); }
-        else {         Serial.println(F("conjure off")); }
+        //if (conjure) { Serial.println(F("conjure on")); }
+        //else {         Serial.println(F("conjure off")); }
         new_state = S_PLAY_OFF;
       }
       break;
@@ -924,11 +966,11 @@ void handlePress(bool pressed) {
 
     case S_CONFIG_MENU_EDIT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will enter config... "));
+        //Serial.print(F("will enter config... "));
         flash(128, 128, 0, 5);
       }
       if (!pressed) {
-        Serial.print(F("configuring: "));
+        //Serial.print(F("configuring: "));
         if (config_state < 2) {
           mode->edit_color = 0;
           mode->cur_variant = config_state % 2;
@@ -945,7 +987,7 @@ void handlePress(bool pressed) {
           printAccSensitivity();
           new_state = S_ACC_SENS_SELECT_OFF;
         }
-        Serial.println();
+        //Serial.println();
         mode->init();
       } else if (since_trans >= LONG_HOLD) {
         new_state = S_CONFIG_MENU_EXIT_WAIT;
@@ -954,11 +996,11 @@ void handlePress(bool pressed) {
 
     case S_CONFIG_MENU_EXIT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will exit... "));
+        //Serial.print(F("will exit... "));
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        Serial.println(F("exit config menu"));
+        //Serial.println(F("exit config menu"));
         mode->init();
         new_state = S_PLAY_OFF;
       }
@@ -969,7 +1011,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_COLOR_SELECT_OFF:
       if (since_trans == 0) {
-        Serial.print(F("edit: ")); printPaletteSlot(); Serial.println();
+        //Serial.print(F("edit: ")); printPaletteSlot(); Serial.println();
       }
 
       if (pressed && since_trans > PRESS_DELAY) {
@@ -979,26 +1021,26 @@ void handlePress(bool pressed) {
 
     case S_COLOR_SELECT_PRESSED:
       if (since_trans >= SHORT_HOLD) {
-        Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
+        //Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
         flash(64, 64, 64, 5);
         new_state = S_COLOR_SELECT_SHADE_WAIT;
       } else if (!pressed) {
         mode->changeColor(1);
-        Serial.print(F("next "));
+        //Serial.print(F("next "));
         new_state = S_COLOR_SELECT_OFF;
       }
       break;
 
     case S_COLOR_SELECT_SHADE_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
+        //Serial.print(F("select: ")); printPaletteSlot(); Serial.println();
         flash(64, 64, 64, 5);
       }
       if (since_trans >= LONG_HOLD) {
         mode->changeShade();
       } else if (!pressed) {
         mode->pattern[mode->cur_variant].num_colors = mode->edit_color + 1;
-        Serial.print(F("selected: ")); printPaletteSlot(); Serial.println();
+        //Serial.print(F("selected: ")); printPaletteSlot(); Serial.println();
         new_state = S_COLOR_CONFIRM_OFF;
       }
       break;
@@ -1008,7 +1050,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_COLOR_CONFIRM_OFF:
       if (since_trans == 0) {
-        Serial.print(F("confirm: ")); printPaletteSlot(); Serial.println();
+        //Serial.print(F("confirm: ")); printPaletteSlot(); Serial.println();
       }
       if (pressed && since_trans > PRESS_DELAY) {
         new_state = S_COLOR_CONFIRM_PRESSED;
@@ -1020,9 +1062,9 @@ void handlePress(bool pressed) {
         new_state = S_COLOR_CONFIRM_REJECT_WAIT;
       } else if (!pressed) {
         mode->edit_color++;
-        Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
+        //Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
         if (mode->edit_color == PALETTE_SIZE) {
-          Serial.print(F("saving: ")); Serial.print(mode->pattern[mode->cur_variant].num_colors); Serial.println(F(" slots"));
+          //Serial.print(F("saving: ")); Serial.print(mode->pattern[mode->cur_variant].num_colors); Serial.println(F(" slots"));
           flash(128, 128, 128, 5);
           new_state = S_SAVE_MODE;
         } else {
@@ -1033,13 +1075,13 @@ void handlePress(bool pressed) {
 
     case S_COLOR_CONFIRM_REJECT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will reject... "));
+        //Serial.print(F("will reject... "));
         flash(128, 0, 0, 5);
       }
       if (since_trans >= LONG_HOLD) {
         new_state = S_COLOR_CONFIRM_EXIT_WAIT;
       } else if (!pressed) {
-        Serial.println(F("reject"));
+        //Serial.println(F("reject"));
         if (mode->edit_color == 0) {
           new_state = S_COLOR_SELECT_OFF;
         } else {
@@ -1052,13 +1094,13 @@ void handlePress(bool pressed) {
 
     case S_COLOR_CONFIRM_EXIT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will save... "));
+        //Serial.print(F("will save... "));
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
+        //Serial.print(F("confirmed: ")); printPaletteSlot(); Serial.println();
         mode->pattern[mode->cur_variant].num_colors = mode->edit_color + 1;
-        Serial.print(F("saving: ")); Serial.print(mode->pattern[mode->cur_variant].num_colors); Serial.println(F(" slots"));
+        //Serial.print(F("saving: ")); Serial.print(mode->pattern[mode->cur_variant].num_colors); Serial.println(F(" slots"));
         new_state = S_SAVE_MODE;
       }
       break;
@@ -1069,7 +1111,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_PATTERN_SELECT_OFF:
       if (since_trans == 0) {
-        Serial.print(F("editing: ")); printPattern(); Serial.println();
+        //Serial.print(F("editing: ")); printPattern(); Serial.println();
       }
       if (pressed && since_trans > PRESS_DELAY) {
         new_state = S_PATTERN_SELECT_PRESSED;
@@ -1081,7 +1123,7 @@ void handlePress(bool pressed) {
         new_state = S_PATTERN_SELECT_WAIT;
       } else if (!pressed) {
         mode->pattern[mode->cur_variant].pattern = (mode->pattern[mode->cur_variant].pattern + 1) % NUM_PATTERNS;
-        Serial.print(F("switched: ")); printPattern(); Serial.println();
+        //Serial.print(F("switched: ")); printPattern(); Serial.println();
         mode->init();
         new_state = S_PATTERN_SELECT_OFF;
       }
@@ -1089,11 +1131,11 @@ void handlePress(bool pressed) {
 
     case S_PATTERN_SELECT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will save.. "));
+        //Serial.print(F("will save.. "));
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        Serial.print(F("saving: ")); printPattern(); Serial.println();
+        //Serial.print(F("saving: ")); printPattern(); Serial.println();
         new_state = S_SAVE_MODE;
       }
       break;
@@ -1104,7 +1146,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_ACC_MODE_SELECT_OFF:
       if (since_trans == 0) {
-        Serial.print(F("accel mode: ")); printAccMode(); Serial.println();
+        //Serial.print(F("accel mode: ")); printAccMode(); Serial.println();
       }
       if (pressed && since_trans > PRESS_DELAY) {
         new_state = S_ACC_MODE_SELECT_PRESSED;
@@ -1114,7 +1156,7 @@ void handlePress(bool pressed) {
     case S_ACC_MODE_SELECT_PRESSED:
       if (!pressed) {
         mode->accel_mode = (mode->accel_mode + 1) % 5;
-        Serial.print(F("switched: ")); printAccMode(); Serial.println();
+        //Serial.print(F("switched: ")); printAccMode(); Serial.println();
         new_state = S_ACC_MODE_SELECT_OFF;
       } else if (since_trans >= LONG_HOLD) {
         new_state = S_ACC_MODE_SELECT_WAIT;
@@ -1123,11 +1165,11 @@ void handlePress(bool pressed) {
 
     case S_ACC_MODE_SELECT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will save..."));
+        //Serial.print(F("will save..."));
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        Serial.print(F("saved: ")); printAccMode(); Serial.println();
+        //Serial.print(F("saved: ")); printAccMode(); Serial.println();
         new_state = S_SAVE_MODE;
       }
       break;
@@ -1138,7 +1180,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_ACC_SENS_SELECT_OFF:
       if (since_trans == 0) {
-        Serial.print(F("accel sens: ")); printAccSensitivity(); Serial.println();
+        //Serial.print(F("accel sens: ")); printAccSensitivity(); Serial.println();
       }
       if (pressed && since_trans > PRESS_DELAY) {
         new_state = S_ACC_SENS_SELECT_PRESSED;
@@ -1148,7 +1190,7 @@ void handlePress(bool pressed) {
     case S_ACC_SENS_SELECT_PRESSED:
       if (!pressed) {
         mode->accel_sens = (mode->accel_sens + 1) % 3;
-        Serial.print(F("switched: ")); printAccSensitivity(); Serial.println();
+        //Serial.print(F("switched: ")); printAccSensitivity(); Serial.println();
         new_state = S_ACC_SENS_SELECT_OFF;
       } else if (since_trans >= LONG_HOLD) {
         new_state = S_ACC_SENS_SELECT_WAIT;
@@ -1157,11 +1199,11 @@ void handlePress(bool pressed) {
 
     case S_ACC_SENS_SELECT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will save.. "));
+        //Serial.print(F("will save.. "));
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
-        Serial.print(F("saved: ")); printAccSensitivity(); Serial.println();
+        //Serial.print(F("saved: ")); printAccSensitivity(); Serial.println();
         new_state = S_SAVE_MODE;
       }
       break;
@@ -1172,7 +1214,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_BUNDLE_SELECT_START:
       if (since_trans == 0) {
-        Serial.println(F("will select... "));
+        //Serial.println(F("will select... "));
         flash(0, 0, 128, 5);
       }
       if (!pressed) {
@@ -1185,7 +1227,7 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_SELECT_OFF:
       if (since_trans == 0) {
-        Serial.print(F("selecting: ")); printCurBundle(); Serial.println();
+        //Serial.print(F("selecting: ")); printCurBundle(); Serial.println();
       }
       if (pressed && since_trans >= PRESS_DELAY) {
         new_state = S_BUNDLE_SELECT_PRESSED;
@@ -1197,7 +1239,7 @@ void handlePress(bool pressed) {
         new_state = S_BUNDLE_SELECT_WAIT;
       } else if (!pressed) {
         cur_bundle = (cur_bundle + 1) % NUM_BUNDLES;
-        Serial.print(F("switched: bundle ")); printCurBundle(); Serial.println();
+        //Serial.print(F("switched: bundle ")); printCurBundle(); Serial.println();
         resetMode();
         new_state = S_BUNDLE_SELECT_OFF;
       }
@@ -1205,41 +1247,41 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_SELECT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will select bundle... "));
+        //Serial.print(F("will select bundle... "));
         flash(0, 0, 128, 5);
       }
       if (since_trans >= LONG_HOLD) {
         new_state = S_BUNDLE_SELECT_EDIT;
       } else if (!pressed) {
-        Serial.print(F("select: bundle ")); Serial.println(cur_bundle + 1);
+        //Serial.print(F("select: bundle ")); Serial.println(cur_bundle + 1);
         new_state = S_PLAY_OFF;
       }
       break;
 
     case S_BUNDLE_SELECT_EDIT:
       if (since_trans == 0) {
-        Serial.print(F("will edit bundle... "));
+        //Serial.print(F("will edit bundle... "));
         flash(128, 128, 0, 5);
       }
       if (since_trans >= LONG_HOLD) {
         new_state = S_BUNDLE_SELECT_BPM;
       } else if (!pressed) {
         resetMode();
-        Serial.println(F("edit"));
+        //Serial.println(F("edit"));
         new_state = S_BUNDLE_EDIT_OFF;
       }
       break;
 
     case S_BUNDLE_SELECT_BPM:
       if (since_trans == 0) {
-        Serial.print(F("will toggle bpm switching... "));
+        //Serial.print(F("will toggle bpm switching... "));
         flash(0, 128, 0, 5);
       }
       if (!pressed) {
         total_time = 0;
         times_clicked = 0;
         bpm_pressed = 0;
-        Serial.println(F("setting bpm"));
+        //Serial.println(F("setting bpm"));
         bpm_trigger = 0;
         new_state = S_BPM_SET_OFF;
       }
@@ -1247,17 +1289,17 @@ void handlePress(bool pressed) {
 
     case S_BPM_SET_OFF:
       if (pressed && since_trans > PRESS_DELAY) {
-        Serial.print(F("click #")); Serial.print(times_clicked);
+        //Serial.print(F("click #")); Serial.print(times_clicked);
         if (times_clicked != 0) {
           bpm_trigger += bpm_pressed;
-          Serial.print(F(" this click ")); Serial.print(bpm_pressed);
-          Serial.print(F(" total ")); Serial.print(bpm_trigger);
+          //Serial.print(F(" this click ")); Serial.print(bpm_pressed);
+          //Serial.print(F(" total ")); Serial.print(bpm_trigger);
         }
         if (times_clicked >= 4) {
           bpm_trigger *= 4;
-          Serial.print(F(" bpm trigger is ")); Serial.print(bpm_trigger);
+          //Serial.print(F(" bpm trigger is ")); Serial.print(bpm_trigger);
         }
-        Serial.println();
+        //Serial.println();
         times_clicked++;
         bpm_pressed = 0;
         new_state = S_BPM_SET_PRESSED;
@@ -1281,11 +1323,11 @@ void handlePress(bool pressed) {
 
     case S_MASTER_RESET_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will master reset... "));
+        //Serial.print(F("will master reset... "));
         flash(128, 0, 0, 5);
       }
       if (!pressed) {
-        Serial.println(F("master reset"));
+        //Serial.println(F("master reset"));
         resetMemory();
         resetMode();
         new_state = S_PLAY_OFF;
@@ -1298,7 +1340,7 @@ void handlePress(bool pressed) {
     //******************************************************
     case S_BUNDLE_EDIT_OFF:
       if (since_trans == 0) {
-        Serial.print(F("editing: ")); printCurMode(); Serial.println();
+        //Serial.print(F("editing: ")); printCurMode(); Serial.println();
       }
       if (pressed && since_trans > PRESS_DELAY) {
         new_state = S_BUNDLE_EDIT_PRESSED;
@@ -1312,24 +1354,24 @@ void handlePress(bool pressed) {
         bundles[cur_bundle][bundle_idx] = (bundles[cur_bundle][bundle_idx] + 1) % NUM_MODES;
         mode = modes[bundles[cur_bundle][bundle_idx]];
         mode->init();
-        Serial.print(F("switched: ")); printCurMode(); Serial.println();
+        //Serial.print(F("switched: ")); printCurMode(); Serial.println();
         new_state = S_BUNDLE_EDIT_OFF;
       }
       break;
 
     case S_BUNDLE_EDIT_WAIT:
       if (since_trans == 0) {
-        Serial.print(F("will set... "));
+        //Serial.print(F("will set... "));
         flash(128, 0, 128, 5);
       }
       if (since_trans >= LONG_HOLD) {
         new_state = S_BUNDLE_EDIT_SAVE;
       } else if (!pressed) {
         bundle_idx++;
-        Serial.print(F("set: ")); printCurMode(); Serial.println();
+        //Serial.print(F("set: ")); printCurMode(); Serial.println();
         if (bundle_idx == NUM_MODES) {
           bundle_slots[cur_bundle] = bundle_idx;
-          Serial.print(F("saved: ")); printCurBundle(); Serial.println();
+          //Serial.print(F("saved: ")); printCurBundle(); Serial.println();
           new_state = S_SAVE_BUNDLES;;
         } else {
           mode = modes[bundles[cur_bundle][bundle_idx]];
@@ -1341,12 +1383,12 @@ void handlePress(bool pressed) {
 
     case S_BUNDLE_EDIT_SAVE:
       if (since_trans == 0) {
-        Serial.print(F("will save... "));
+        //Serial.print(F("will save... "));
         flash(128, 128, 128, 5);
       }
       if (!pressed) {
         bundle_slots[cur_bundle] = bundle_idx + 1;
-        Serial.print(F("saved: ")); printCurBundle(); Serial.println();
+        //Serial.print(F("saved: ")); printCurBundle(); Serial.println();
         new_state = S_SAVE_BUNDLES;
       }
       break;
@@ -1379,25 +1421,25 @@ void handlePress(bool pressed) {
 }
 
 void printConfigMode() {
-  Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
+  //Serial.print(F("mode ")); Serial.print(bundles[cur_bundle][bundle_idx] + 1);
   switch (config_state) {
     case CONFIG_PALETTE0:
-      Serial.println(F(" configure palette A"));
+      //Serial.println(F(" configure palette A"));
       break;
     case CONFIG_PALETTE1:
-      Serial.println(F(" configure palette B"));
+      //Serial.println(F(" configure palette B"));
       break;
     case CONFIG_PATTERN0:
-      Serial.println(F(" configure pattern A"));
+      //Serial.println(F(" configure pattern A"));
       break;
     case CONFIG_PATTERN1:
-      Serial.println(F(" configure pattern B"));
+      //Serial.println(F(" configure pattern B"));
       break;
     case CONFIG_ACC_MODE:
-      Serial.println(F(" configure acc mode"));
+      //Serial.println(F(" configure acc mode"));
       break;
     default: // case CONFIG_ACC_SENS:
-      Serial.println(F(" configure acc sensitivity"));
+      //Serial.println(F(" configure acc sensitivity"));
       break;
   }
 }
@@ -1407,7 +1449,7 @@ void printConfigMode() {
 // **** SLEEP CODE ****************************************************
 // ********************************************************************
 void enterSleep() {
-  Serial.println(F("Going to sleep"));
+  //Serial.println(F("Going to sleep"));
 
   writeFrame(0, 0, 0);
   accStandby();
