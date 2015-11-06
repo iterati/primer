@@ -484,8 +484,36 @@ void setup() {
   resetMode();
 }
 
+void readMode() {
+  mode->pattern[0].pattern = Serial.read();
+  /* modes[idx]->accel_mode = Serial.read(); */
+  /* modes[idx]->accel_sens = Serial.read(); */
+  /* for (uint8_t v = 0; v < 2; v++) { */
+    /* modes[idx]->pattern[v].pattern = Serial.read(); */
+    /* modes[idx]->pattern[v].num_colors = Serial.read(); */
+    /* for (uint8_t s = 0; s < 16; s++) { */
+    /*   modes[idx]->pattern[v].colors[s][0] = Serial.read(); */
+    /*   modes[idx]->pattern[v].colors[s][1] = Serial.read(); */
+    /*   modes[idx]->pattern[v].colors[s][2] = Serial.read(); */
+    /* } */
+  /* } */
+}
+
+void handleSerial() {
+  if (Serial.available() >= 1) {
+    switch (Serial.read()) {
+      case 'L':
+        readMode();
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 void loop() {
   uint8_t r, g, b;
+  handleSerial();
   handlePress(digitalRead(PIN_BUTTON) == LOW);
   if (accel_counter >= 20) accel_counter = 0;
   if (accel_counter == 0) {
@@ -910,7 +938,7 @@ void handlePress(bool pressed) {
           mode->cur_variant = config_state % 2;
           printPattern();
           new_state = S_PATTERN_SELECT_OFF;
-        } else if (config_state == 5) {
+        } else if (config_state == 4) {
           printAccMode();
           new_state = S_ACC_MODE_SELECT_OFF;
         } else {
