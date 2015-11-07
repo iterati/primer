@@ -9,7 +9,7 @@ uint8_t r1, g1, b1;
 /*******************************************************************************
  ** BASE ANIMATIONS
  ******************************************************************************/
-void _strobe(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
+void _strobe(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
@@ -22,7 +22,7 @@ void _strobe(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
   }
 }
 
-void _pulse(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
+void _pulse(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
@@ -41,7 +41,7 @@ void _pulse(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
   }
 }
 
-void _tracer(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
+void _tracer(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->cur_color = (pattern->cur_color + 1) % (pattern->num_colors - 1);
@@ -54,7 +54,7 @@ void _tracer(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
   }
 }
 
-void _dashdops(Pattern* pattern, uint8_t c_time, uint8_t d_time, uint8_t b_time, uint8_t dops) {
+void _dashdops(Pattern* pattern, uint16_t c_time, uint16_t d_time, uint16_t b_time, uint16_t dops) {
   pattern->counter1 = pattern->num_colors - 1;
   if (pattern->tick >= (pattern->counter1 * c_time) + ((d_time + b_time) * dops) + b_time) {
     pattern->tick = 0;
@@ -72,7 +72,7 @@ void _dashdops(Pattern* pattern, uint8_t c_time, uint8_t d_time, uint8_t b_time,
   }
 }
 
-void _blinke(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
+void _blinke(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
   if (pattern->tick >= (pattern->num_colors * c_time) + b_time) {
     pattern->tick = 0;
   }
@@ -84,7 +84,7 @@ void _blinke(Pattern* pattern, uint8_t c_time, uint8_t b_time) {
   }
 }
 
-void _edge(Pattern* pattern, uint8_t c_time, uint8_t e_time, uint8_t b_time) {
+void _edge(Pattern* pattern, uint16_t c_time, uint16_t e_time, uint16_t b_time) {
   pattern->counter0 = pattern->num_colors - 1;
   if (pattern->tick >= (pattern->counter0 * c_time * 2) + e_time + b_time) {
     pattern->tick = 0;
@@ -102,23 +102,23 @@ void _edge(Pattern* pattern, uint8_t c_time, uint8_t e_time, uint8_t b_time) {
   }
 }
 
-uint8_t getLegoTime() {
+uint16_t getLegoTime(uint16_t mult) {
   switch (random(0, 3)) {
     case 0:
-      return 4;
+      return 2 * mult;
     case 1:
-      return 16;
+      return 8 * mult;
     default:
-      return 32;
+      return 16 * mult;
   }
 }
 
-void _lego(Pattern* pattern, uint8_t b_time) {
-  if (pattern->counter0 == 0) pattern->counter0 = getLegoTime();
+void _lego(Pattern* pattern, uint16_t b_time, uint16_t mult) {
+  if (pattern->counter0 == 0) pattern->counter0 = getLegoTime(mult);
   if (pattern->tick >= pattern->counter0 + b_time) {
     pattern->tick = 0;
     pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
-    pattern->counter0 = getLegoTime();
+    pattern->counter0 = getLegoTime(mult);
   }
 
   if (pattern->tick < pattern->counter0) {
@@ -128,7 +128,7 @@ void _lego(Pattern* pattern, uint8_t b_time) {
   }
 }
 
-void _chase(Pattern* pattern, uint8_t c_time, uint8_t b_time, uint8_t steps) {
+void _chase(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t steps) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0++;
@@ -156,7 +156,7 @@ void _chase(Pattern* pattern, uint8_t c_time, uint8_t b_time, uint8_t steps) {
   }
 }
 
-void _morph(Pattern* pattern, uint8_t c_time, uint8_t b_time, uint8_t steps) {
+void _morph(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t steps) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0++;
@@ -176,7 +176,7 @@ void _morph(Pattern* pattern, uint8_t c_time, uint8_t b_time, uint8_t steps) {
   }
 }
 
-void _comet(Pattern* pattern, uint8_t c_time, uint8_t b_time, uint8_t per_step) {
+void _comet(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t per_step) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0 += (pattern->counter1 == 0) ? per_step : -1 * per_step;
@@ -195,7 +195,7 @@ void _comet(Pattern* pattern, uint8_t c_time, uint8_t b_time, uint8_t per_step) 
   }
 }
 
-void _candy(Pattern* pattern, uint8_t c_time, uint8_t b_time, uint8_t pick, uint8_t repeat) {
+void _candy(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t pick, uint16_t repeat) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0++;
@@ -289,53 +289,149 @@ void Pattern::save(uint16_t addr) {
 
 void Pattern::render(uint8_t& r, uint8_t& g, uint8_t& b) {
   switch (pattern) {
-    case PATTERN_STROBE:
-      _strobe(this, 10, 16);
+    case PATTERN_STROBE_FAST:
+      _strobe(this, 5, 8);
       break;
-    case PATTERN_HYPER:
-      _strobe(this, 34, 34);
+    case PATTERN_STROBE:
+      _strobe(this, 10, 15);
+      break;
+    case PATTERN_STROBE_SLOW:
+      _strobe(this, 20, 30);
+      break;
+    case PATTERN_NANODOPS:
+      _strobe(this, 1, 10);
       break;
     case PATTERN_DOPS:
       _strobe(this, 3, 20);
       break;
     case PATTERN_STROBIE:
-      _strobe(this, 6, 44);
+      _strobe(this, 6, 40);
+      break;
+    case PATTERN_SEIZURE:
+      _strobe(this, 12, 160);
+      break;
+    case PATTERN_ULTRA:
+      _strobe(this, 15, 15);
+      break;
+    case PATTERN_HYPER:
+      _strobe(this, 33, 32);
+      break;
+    case PATTERN_MEGA:
+      _strobe(this, 68, 67);
+      break;
+    case PATTERN_PULSE_STROBE:
+      _pulse(this, 25, 15);
+      break;
+    case PATTERN_PULSE_FAST:
+      _pulse(this, 100, 25);
       break;
     case PATTERN_PULSE:
       _pulse(this, 200, 50);
       break;
-    case PATTERN_SEIZURE:
-      _strobe(this, 10, 190);
+    case PATTERN_PULSE_SLOW:
+      _pulse(this, 400, 100);
+      break;
+    case PATTERN_LASER:
+      _tracer(this, 3, 20);
       break;
     case PATTERN_TRACER:
       _tracer(this, 6, 44);
       break;
-    case PATTERN_DASHDOPS:
+    case PATTERN_TAZER:
+      _tracer(this, 17, 34);
+      break;
+    case PATTERN_DASHDOPS2:
       _dashdops(this, 3, 3, 20, 2);
+      break;
+    case PATTERN_DASHDOPS7:
+      _dashdops(this, 8, 3, 20, 7);
+      break;
+    case PATTERN_DASHSTROBE:
+      _dashdops(this, 5, 10, 16, 4);
+      break;
+    case PATTERN_DASHDASH:
+      _dashdops(this, 5, 40, 20, 1);
+      break;
+    case PATTERN_QUICKE:
+      _blinke(this, 5, 50);
       break;
     case PATTERN_BLINKE:
       _blinke(this, 10, 100);
       break;
+    case PATTERN_STRIBBON:
+      _blinke(this, 20, 100);
+      break;
+    case PATTERN_RAZOR:
+      _edge(this, 2, 6, 20);
+      break;
     case PATTERN_EDGE:
       _edge(this, 4, 16, 40);
       break;
+    case PATTERN_SWORD:
+      _edge(this, 8, 20, 60);
+      break;
+    case PATTERN_BARBWIRE:
+      _edge(this, 2, 6, 60);
+      break;
+    case PATTERN_LEGO_MINI:
+      _lego(this, 8, 1);
+      break;
     case PATTERN_LEGO:
-      _lego(this, 16);
+      _lego(this, 16, 2);
+      break;
+    case PATTERN_LEGO_HUGE:
+      _lego(this, 50, 5);
+      break;
+    case PATTERN_CHASE_SHORT:
+      _chase(this, 50, 10, 5);
       break;
     case PATTERN_CHASE:
       _chase(this, 100, 20, 5);
       break;
+    case PATTERN_CHASE_LONG:
+      _chase(this, 500, 50, 10);
+      break;
     case PATTERN_MORPH:
+      _morph(this, 500, 0, 1);
+      break;
+    case PATTERN_MORPH_SLOW:
+      _morph(this, 1000, 0, 1);
+      break;
+    case PATTERN_MORPH_STROBE:
+      _morph(this, 10, 16, 8);
+      break;
+    case PATTERN_MORPH_HYPER:
       _morph(this, 34, 34, 4);
       break;
-    case PATTERN_RIBBON:
-      _strobe(this, 22, 0);
+    case PATTERN_RIBBON5:
+      _strobe(this, 10, 0);
+      break;
+    case PATTERN_RIBBON10:
+      _strobe(this, 20, 0);
+      break;
+    case PATTERN_RIBBON20:
+      _strobe(this, 40, 0);
+      break;
+    case PATTERN_COMET_SHORT:
+      _comet(this, 30, 10, 2);
       break;
     case PATTERN_COMET:
-      _comet(this, 30, 16, 2);
+      _comet(this, 100, 20, 5);
       break;
-    case PATTERN_CANDY:
+    case PATTERN_COMET_LONG:
+      _comet(this, 250, 20, 10);
+      break;
+    case PATTERN_CANDY2:
+      _candy(this, 10, 16, 2, 12);
+      break;
+    case PATTERN_CANDY3:
       _candy(this, 10, 16, 3, 8);
+      break;
+    case PATTERN_CANDOPS:
+      _candy(this, 3, 20, 3, 8);
+      break;
+    case PATTERN_CANDYCRUSH:
+      _candy(this, 34, 34, 3, 4);
       break;
     default:
       break;

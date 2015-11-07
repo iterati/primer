@@ -242,6 +242,8 @@ uint8_t times_clicked = 0;
 uint32_t bpm_pressed = 0;
 uint32_t total_time = 0;
 
+bool interactive = false;
+
 // ********************************************************************
 // **** SETUP CODE ****************************************************
 // ********************************************************************
@@ -358,7 +360,7 @@ void resetMemory() {
   mode00.accel_mode = AMODE_SPEED;
   mode00.accel_sens = ASENS_LOW;
   mode00.pattern[0] = Pattern(PATTERN_DOPS,      12, 0x01, 0x08, 0x01, 0x0C, 0x01, 0x10, 0x01, 0x14, 0x01, 0x18, 0x01, 0x1C, 0x00, 0x00, 0x00, 0x00);
-  mode00.pattern[1] = Pattern(PATTERN_DASHDOPS,  13, 0x01, 0x9E, 0x9C, 0x9A, 0x98, 0x96, 0x94, 0x92, 0x90, 0x8E, 0x8C, 0x8A, 0x88, 0x00, 0x00, 0x00);
+  mode00.pattern[1] = Pattern(PATTERN_DASHDOPS2, 13, 0x01, 0x9E, 0x9C, 0x9A, 0x98, 0x96, 0x94, 0x92, 0x90, 0x8E, 0x8C, 0x8A, 0x88, 0x00, 0x00, 0x00);
 
   mode01.accel_mode = AMODE_SPEED;
   mode01.accel_sens = ASENS_MEDIUM;
@@ -382,8 +384,8 @@ void resetMemory() {
 
   mode05.accel_mode = AMODE_TILTX;
   mode05.accel_sens = ASENS_HIGH;
-  mode05.pattern[0] = Pattern(PATTERN_CANDY,      8, 0x08, 0x0B, 0x08, 0x1D, 0x08, 0x0E, 0x08, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode05.pattern[1] = Pattern(PATTERN_CANDY,      8, 0x18, 0x1B, 0x18, 0x15, 0x18, 0x1E, 0x18, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode05.pattern[0] = Pattern(PATTERN_CANDY3,     8, 0x08, 0x0B, 0x08, 0x1D, 0x08, 0x0E, 0x08, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode05.pattern[1] = Pattern(PATTERN_CANDY3,     8, 0x18, 0x1B, 0x18, 0x15, 0x18, 0x1E, 0x18, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode06.accel_mode = AMODE_TILTY;
   mode06.accel_sens = ASENS_LOW;
@@ -392,8 +394,8 @@ void resetMemory() {
 
   mode07.accel_mode = AMODE_TILTY;
   mode07.accel_sens = ASENS_MEDIUM;
-  mode07.pattern[0] = Pattern(PATTERN_RIBBON,    12, 0x08, 0x0A, 0x00, 0x00, 0x10, 0x12, 0x00, 0x00, 0x18, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-  mode07.pattern[1] = Pattern(PATTERN_RIBBON,    12, 0x08, 0x00, 0x0C, 0x00, 0x10, 0x00, 0x14, 0x00, 0x18, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode07.pattern[0] = Pattern(PATTERN_RIBBON10,  12, 0x08, 0x0A, 0x00, 0x00, 0x10, 0x12, 0x00, 0x00, 0x18, 0x1A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+  mode07.pattern[1] = Pattern(PATTERN_RIBBON10,  12, 0x08, 0x00, 0x0C, 0x00, 0x10, 0x00, 0x14, 0x00, 0x18, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00);
 
   mode08.accel_mode = AMODE_TILTY;
   mode08.accel_sens = ASENS_HIGH;
@@ -508,6 +510,7 @@ void readMode(uint8_t addr) {
 
 void writeMode(uint8_t addr) {
   uint8_t in = Serial.read();
+  Serial.write(addr);
   if (addr == 0) {
     Serial.write(mode->accel_mode);
   } else if (addr == 1) {
@@ -528,9 +531,15 @@ void writeMode(uint8_t addr) {
 }
 
 void handleSerial() {
+  uint8_t addr = 0;
   if (Serial.available() >= 1) {
+    interactive = true;
+    if (button_state > S_PLAY_PRESSED) {
+      mode->init();
+      button_state = S_PLAY_OFF;
+    }
     switch (Serial.read()) {
-      case 'M':
+      case 'W':
         while (Serial.available() < 2 && limiter < 6400000) {} // Wait for full command
         readMode(Serial.read());
         break;
@@ -539,7 +548,31 @@ void handleSerial() {
         writeMode(Serial.read());
         break;
       case 'S':
-        mode->save(addrs[bundles[cur_bundle][bundle_idx]]);
+        mode->save(addrs[cur_mode_idx]);
+        flash(96, 96, 96, 5);
+        mode->init();
+        break;
+      case 'X': // Reset mode
+        mode->load(addrs[cur_mode_idx]);
+        flash(96, 96, 96, 5);
+        mode->init();
+      case 'D':
+        Serial.write(101);
+        Serial.write(cur_mode_idx);
+        while (addr < 38) {
+          writeMode(addr);
+          addr++;
+        }
+        Serial.write(102);
+        Serial.write(cur_mode_idx);
+        break;
+      case 'P':
+        cur_mode_idx = (cur_mode_idx + NUM_MODES - 1) % NUM_MODES;
+        _modeChanged();
+        break;
+      case 'N':
+        cur_mode_idx = (cur_mode_idx + 1) % NUM_MODES;
+        _modeChanged();
         break;
       default:
         break;
@@ -662,28 +695,26 @@ void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
   analogWrite(PIN_B, (b >> 1) + (b >> 2));
 }
 
-void resetMode() {
-  bundle_idx = 0;
-  cur_mode_idx = bundles[cur_bundle][bundle_idx];
+void _modeChanged() {
   mode = modes[cur_mode_idx];
   bpm_tracker = 0;
   mode->init();
   mode->cur_variant = 0;
   fxg = fyg = fzg = 0.0;
-  Serial.write(255);
+  Serial.write(100);
   Serial.write(cur_mode_idx);
+}
+
+void resetMode() {
+  bundle_idx = 0;
+  cur_mode_idx = bundles[cur_bundle][bundle_idx];
+  _modeChanged();
 }
 
 void incMode() {
   bundle_idx = (bundle_idx + 1) % bundle_slots[cur_bundle];
   cur_mode_idx = bundles[cur_bundle][bundle_idx];
-  mode = modes[cur_mode_idx];
-  bpm_tracker = 0;
-  mode->init();
-  mode->cur_variant = 0;
-  fxg = fyg = fzg = 0.0;
-  Serial.write(255);
-  Serial.write(cur_mode_idx);
+  _modeChanged();
 }
 
 
@@ -872,7 +903,7 @@ void handlePress(bool pressed) {
       break;
 
     case S_PLAY_PRESSED:
-      if (since_trans >= SHORT_HOLD) {
+      if (since_trans >= SHORT_HOLD && !interactive) {
         new_state = S_PLAY_SLEEP_WAIT;
       } else if (!pressed) {
         if (conjure) {
@@ -880,7 +911,12 @@ void handlePress(bool pressed) {
           //if (conjure_toggle) { Serial.println(F("conjure: light off")); }
           //else {                Serial.println(F("conjure: light on")); }
         } else {
-          incMode();
+          if (interactive) {
+            cur_mode_idx = (cur_mode_idx + 1) % NUM_MODES;
+            _modeChanged();
+          } else {
+            incMode();
+          }
         }
         new_state = S_PLAY_OFF;
       }
@@ -1038,6 +1074,7 @@ void handlePress(bool pressed) {
       }
       if (since_trans >= LONG_HOLD) {
         mode->changeShade();
+        since_trans = 0;
       } else if (!pressed) {
         mode->pattern[mode->cur_variant].num_colors = mode->edit_color + 1;
         //Serial.print(F("selected: ")); printPaletteSlot(); Serial.println();
