@@ -6,6 +6,44 @@ uint8_t _r, _g, _b;
 uint8_t r0, g0, b0;
 uint8_t r1, g1, b1;
 
+uint8_t user_patterns[16][8];
+
+void initPatterns() {
+  /* user_patterns[0]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[1]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[2]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[3]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[4]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[5]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[6]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[7]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[8]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[9]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[10] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[11] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[12] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[13] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[14] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+  /* user_patterns[15] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
+}
+
+void loadPatterns(uint16_t addr) {
+  for (uint8_t p; p < 16; p++) {
+    for (uint8_t i; i < 8; i++) {
+      user_patterns[p][i] = EEPROM.read(addr + (16 * p) + i);
+    }
+  }
+}
+
+void savePatterns(uint16_t addr) {
+  for (uint8_t p; p < 16; p++) {
+    for (uint8_t i; i < 8; i++) {
+      EEPROM.update(addr + (16 * p) + i, user_patterns[p][i]);
+    }
+  }
+}
+
+
 /*******************************************************************************
  ** BASE ANIMATIONS
  ******************************************************************************/
@@ -54,7 +92,7 @@ void _tracer(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
   }
 }
 
-void _dashdops(Pattern* pattern, uint16_t c_time, uint16_t d_time, uint16_t b_time, uint16_t dops) {
+void _dashdops(Pattern* pattern, uint16_t c_time, uint16_t d_time, uint16_t b_time, uint8_t dops) {
   pattern->counter1 = pattern->num_colors - 1;
   if (pattern->tick >= (pattern->counter1 * c_time) + ((d_time + b_time) * dops) + b_time) {
     pattern->tick = 0;
@@ -102,7 +140,7 @@ void _edge(Pattern* pattern, uint16_t c_time, uint16_t e_time, uint16_t b_time) 
   }
 }
 
-uint16_t getLegoTime(uint16_t mult) {
+uint16_t getLegoTime(uint8_t mult) {
   switch (random(0, 3)) {
     case 0:
       return 2 * mult;
@@ -113,7 +151,7 @@ uint16_t getLegoTime(uint16_t mult) {
   }
 }
 
-void _lego(Pattern* pattern, uint16_t b_time, uint16_t mult) {
+void _lego(Pattern* pattern, uint16_t b_time, uint8_t mult) {
   if (pattern->counter0 == 0) pattern->counter0 = getLegoTime(mult);
   if (pattern->tick >= pattern->counter0 + b_time) {
     pattern->tick = 0;
@@ -128,7 +166,7 @@ void _lego(Pattern* pattern, uint16_t b_time, uint16_t mult) {
   }
 }
 
-void _chase(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t steps) {
+void _chase(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t steps) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0++;
@@ -156,7 +194,7 @@ void _chase(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t steps) 
   }
 }
 
-void _morph(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t steps) {
+void _morph(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t steps) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0++;
@@ -176,7 +214,7 @@ void _morph(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t steps) 
   }
 }
 
-void _comet(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t per_step) {
+void _comet(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t per_step) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0 += (pattern->counter1 == 0) ? per_step : -1 * per_step;
@@ -195,7 +233,7 @@ void _comet(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t per_ste
   }
 }
 
-void _candy(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t pick, uint16_t repeat) {
+void _candy(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t pick, uint8_t repeat) {
   if (pattern->tick >= c_time + b_time) {
     pattern->tick = 0;
     pattern->counter0++;
@@ -213,6 +251,76 @@ void _candy(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint16_t pick, u
     unpackColor(pattern->colors[(pattern->cur_color + pattern->counter0) % pattern->num_colors], _r, _g, _b);
   } else {
     _r = 0; _g = 0; _b = 0;
+  }
+}
+
+void _user_pattern(Pattern* pattern, uint8_t idx) {
+  switch (user_patterns[idx][0]) {
+    case BASE_STROBE:
+      _strobe(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
+      break;
+    case BASE_PULSE:
+      _pulse(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
+      break;
+    case BASE_TRACER:
+      _tracer(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
+      break;
+    case BASE_DASHDOPS:
+      _dashdops(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
+          (user_patterns[idx][5] << 8) + user_patterns[idx][6],
+          user_patterns[idx][7]);
+      break;
+    case BASE_BLINKE:
+      _blinke(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
+      break;
+    case BASE_EDGE:
+      _edge(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
+          (user_patterns[idx][5] << 8) + user_patterns[idx][6]);
+      break;
+    case BASE_LEGO:
+      _lego(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          user_patterns[idx][3]);
+      break;
+    case BASE_CHASE:
+      _chase(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
+          user_patterns[idx][5]);
+      break;
+    case BASE_MORPH:
+      _morph(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
+          user_patterns[idx][5]);
+      break;
+    case BASE_COMET:
+      _comet(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
+          user_patterns[idx][5]);
+      break;
+    case BASE_CANDY:
+      _candy(pattern,
+          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
+          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
+          user_patterns[idx][5],
+          user_patterns[idx][6]);
+      break;
+    default:
+      break;
   }
 }
 
@@ -432,6 +540,24 @@ void Pattern::render(uint8_t& r, uint8_t& g, uint8_t& b) {
       break;
     case PATTERN_CANDYCRUSH:
       _candy(this, 34, 34, 3, 4);
+      break;
+    case PATTERN_USER_00:
+    case PATTERN_USER_01:
+    case PATTERN_USER_02:
+    case PATTERN_USER_03:
+    case PATTERN_USER_04:
+    case PATTERN_USER_05:
+    case PATTERN_USER_06:
+    case PATTERN_USER_07:
+    case PATTERN_USER_08:
+    case PATTERN_USER_09:
+    case PATTERN_USER_10:
+    case PATTERN_USER_11:
+    case PATTERN_USER_12:
+    case PATTERN_USER_13:
+    case PATTERN_USER_14:
+    case PATTERN_USER_15:
+      _user_pattern(this, pattern - 48);
       break;
     default:
       break;

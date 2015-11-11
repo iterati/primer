@@ -54,7 +54,40 @@
 #define PATTERN_CANDY3        45
 #define PATTERN_CANDOPS       46
 #define PATTERN_CANDYCRUSH    47
+#define PATTERN_USER_00       48
+#define PATTERN_USER_01       49
+#define PATTERN_USER_02       50
+#define PATTERN_USER_03       51
+#define PATTERN_USER_04       52
+#define PATTERN_USER_05       53
+#define PATTERN_USER_06       54
+#define PATTERN_USER_07       55
+#define PATTERN_USER_08       56
+#define PATTERN_USER_09       57
+#define PATTERN_USER_10       58
+#define PATTERN_USER_11       59
+#define PATTERN_USER_12       60
+#define PATTERN_USER_13       61
+#define PATTERN_USER_14       62
+#define PATTERN_USER_15       63
 
+#define BASE_STROBE           0
+#define BASE_PULSE            1
+#define BASE_TRACER           2
+#define BASE_DASHDOPS         3
+#define BASE_BLINKE           4
+#define BASE_EDGE             5
+#define BASE_LEGO             6
+#define BASE_CHASE            7
+#define BASE_MORPH            8
+#define BASE_COMET            9
+#define BASE_CANDY            10
+
+extern uint8_t user_patterns[16][8];
+
+void initPatterns();
+void loadPatterns(uint16_t addr);
+void savePatterns(uint16_t addr);
 
 class Pattern {
   public:
