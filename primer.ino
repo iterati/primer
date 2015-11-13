@@ -825,7 +825,7 @@ void loop() {
   handleSerial();
   handlePress(digitalRead(PIN_BUTTON) == LOW);
   if (accel_counter >= 20) accel_counter = 0;
-  if (button_state == S_PLAY_OFF || button_state == S_BUNDLE_SELECT_OFF) {
+  if (button_state == S_PLAY_OFF || button_state == S_BUNDLE_SELECT_OFF || button_state >= 100) {
     if (accel_counter == 0) {
       accUpdate();
     } else if (accel_counter == 1) {
