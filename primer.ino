@@ -25,27 +25,35 @@ SOFTWARE.
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <Wire.h>
-#include <avr/sleep.h>
-#include <avr/power.h>
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
+#include "LowPower.h"
 #include "elapsedMillis.h"
 #include "palette.h"
 #include "pattern.h"
 
 #define DEBUG
-#define NUM_MODES 16
-#define NUM_BUNDLES 4
-#define EEPROM_VERSION 101
+#define NUM_MODES       16
+#define NUM_BUNDLES     4
+#define EEPROM_VERSION  111
 
 // 0 - 640      Modes
 // 640 - 708    Bundles
 // 720 - 816    Palette
 // 820 - 948    Custom Patterns
+#define BUNDLE_EEPROM_ADDR    640
+#define PALETTE_EEPROM_ADDR   720
+#define PATTERNS_EEPROM_ADDR  820
+
+// 1020         Current Bundle
+// 1021         Locked Flag
+// 1022         Sleeping Flag
 // 1023         Version
-#define VERSION_ADDR 1023
-#define BUNDLE_EEPROM_ADDR 640
-#define PALETTE_EEPROM_ADDR 720
-#define PATTERNS_EEPROM_ADDR 820
+#define ADDR_CUR_BUNDLE 1020
+#define ADDR_LOCKED     1021
+#define ADDR_SLEEPING   1022
+#define ADDR_VERSION    1023
+
 uint16_t addrs[NUM_MODES] = {
   0, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440, 480, 520, 560, 600,
 };
@@ -339,14 +347,13 @@ bool locked = false;
 #define FRAME_TICKS 32000
 
 void clearMemory() {
-  for (int i = 0 ; i < EEPROM.length() ; i++) {
+  for (int i = 0; i < 1024; i++) {
     EEPROM.write(i, 0);
   }
 }
 
 void saveModes() {
   for (uint8_t i = 0; i < NUM_MODES; i++) modes[i]->save(addrs[i]);
-  EEPROM.update(VERSION_ADDR, EEPROM_VERSION);
 }
 
 void loadModes() {
@@ -749,7 +756,7 @@ void resetMemory() {
   savePalette(PALETTE_EEPROM_ADDR);
   savePatterns(PATTERNS_EEPROM_ADDR);
 
-  EEPROM.update(VERSION_ADDR, EEPROM_VERSION);
+  EEPROM.update(ADDR_VERSION, EEPROM_VERSION);
 }
 
 void handleSerial() {
@@ -785,8 +792,6 @@ void handleSerial() {
 }
 
 void setup() {
-  power_spi_disable();
-
   Serial.begin(57600);
   randomSeed(analogRead(0));
 
@@ -795,9 +800,19 @@ void setup() {
   pinMode(PIN_B, OUTPUT);
   pinMode(PIN_BUTTON, INPUT);
   pinMode(PIN_LDO, OUTPUT);
-  digitalWrite(PIN_LDO, HIGH);
 
-  if (EEPROM_VERSION != EEPROM.read(VERSION_ADDR)) {
+  attachInterrupt(0, pushInterrupt, FALLING);
+  locked = EEPROM.read(ADDR_LOCKED);
+  cur_bundle = EEPROM.read(ADDR_CUR_BUNDLE);
+
+  if (EEPROM.read(ADDR_SLEEPING)) {
+    EEPROM.write(ADDR_SLEEPING, 0);
+    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+    button_state = new_state = S_WAKEUP_WAIT;
+  }
+  detachInterrupt(0);
+
+  if (EEPROM_VERSION != EEPROM.read(ADDR_VERSION)) {
     resetMemory();
   } else {
     loadModes();
@@ -805,6 +820,8 @@ void setup() {
     loadPalette(PALETTE_EEPROM_ADDR);
     loadPatterns(PATTERNS_EEPROM_ADDR);
   }
+
+  digitalWrite(PIN_LDO, HIGH);
   resetMode();
   accInit();
 
@@ -815,7 +832,7 @@ void setup() {
   bitSet(TCCR1B, WGM12); // enable fast PWM                ~64/ms
   interrupts();
 
-  delay(4000);
+  delay(40);
   limiter = 0;
   Serial.write(100); Serial.write(cur_mode_idx); Serial.write(0);
 }
@@ -1079,7 +1096,7 @@ void handlePress(bool pressed) {
           enterSleep();
           since_trans = 0;
         } else if (since_trans >= 6000) {
-          locked = false;
+          EEPROM.write(ADDR_LOCKED, 0);
           new_state = S_WAKEUP_AFTER_LOCK;
         }
       } else {
@@ -1108,7 +1125,7 @@ void handlePress(bool pressed) {
         flash(0, 128, 0, 5);
       }
       if (!pressed) {
-        locked = true;
+        EEPROM.write(ADDR_LOCKED, 1);
         enterSleep();
         new_state = S_WAKEUP_WAIT;
       } else if (since_trans >= 4000) {
@@ -1348,6 +1365,7 @@ void handlePress(bool pressed) {
         new_state = S_BUNDLE_SELECT_WAIT;
       } else if (!pressed) {
         cur_bundle = (cur_bundle + 1) % NUM_BUNDLES;
+        EEPROM.write(ADDR_CUR_BUNDLE, cur_bundle);
         resetMode();
         new_state = S_BUNDLE_SELECT_OFF;
       }
@@ -1520,15 +1538,9 @@ void enterSleep() {
   digitalWrite(PIN_LDO, LOW);
   delay(4000);
 
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  sleep_enable();
-  noInterrupts();
-  attachInterrupt(0, pushInterrupt, FALLING);
-  EIFR = bit(INTF0);
-  MCUCR = bit(BODS) | bit(BODSE);
-  MCUCR = bit(BODS);
-  interrupts();
-  sleep_cpu();
+  EEPROM.write(ADDR_SLEEPING, 1);
+  delay(64000);
+  wdt_enable(WDTO_15MS);
 
   // Wait until button is releaed
   digitalWrite(PIN_LDO, HIGH);
@@ -1539,6 +1551,4 @@ void enterSleep() {
 }
 
 void pushInterrupt() {
-  sleep_disable();
-  detachInterrupt(0);
 }
