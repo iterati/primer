@@ -1539,7 +1539,7 @@ void enterSleep() {
   delay(4000);
 
   EEPROM.write(ADDR_SLEEPING, 1);
-  delay(64000);
+  delay(4000);
   wdt_enable(WDTO_15MS);
 
   // Wait until button is releaed
