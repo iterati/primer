@@ -2,6 +2,7 @@
 #define __PALETTE_H
 
 #include <Arduino.h>
+#include <EEPROM.h>
 
 #define NUM_COLORS 32
 

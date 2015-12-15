@@ -1,326 +1,392 @@
-#include <EEPROM.h>
-#include "palette.h"
 #include "pattern.h"
 
-uint8_t _r, _g, _b;
-uint8_t r0, g0, b0;
-uint8_t r1, g1, b1;
-
-uint8_t user_patterns[16][8];
-
-void initPatterns() {
-  /* user_patterns[0]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[1]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[2]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[3]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[4]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[5]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[6]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[7]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[8]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[9]  = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[10] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[11] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[12] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[13] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[14] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-  /* user_patterns[15] = {BASE_STROBE, 0, 20, 0, 200, 0, 0, 0, 0}; */
-}
-
-void loadPatterns(uint16_t addr) {
-  for (uint8_t p; p < 16; p++) {
-    for (uint8_t i; i < 8; i++) {
-      user_patterns[p][i] = EEPROM.read(addr + (16 * p) + i);
-    }
-  }
-}
-
-void savePatterns(uint16_t addr) {
-  for (uint8_t p; p < 16; p++) {
-    for (uint8_t i; i < 8; i++) {
-      EEPROM.update(addr + (16 * p) + i, user_patterns[p][i]);
-    }
-  }
-}
+uint8_t _r, _g, _b, r0, g0, b0, r1, g1, b1;
 
 
 /*******************************************************************************
  ** BASE ANIMATIONS
  ******************************************************************************/
-void _strobe(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
-  if (pattern->tick >= c_time + b_time) {
-    pattern->tick = 0;
-    pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
-  }
+void _strobe(Pattern* p, uint8_t ct, uint8_t bt, uint8_t lt,
+             uint8_t repeat, uint8_t pick, uint8_t skip, bool doit) {
+  int8_t c;
+  uint16_t sT;
 
-  if (pattern->tick < c_time) {
-    unpackColor(pattern->colors[pattern->cur_color], _r, _g, _b);
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
+  repeat = (repeat == 0) ? 1 : repeat;
+  pick = (pick == 0) ? p->num_colors : pick;
+  skip = (skip == 0 || skip > pick) ? pick : skip;
 
-void _pulse(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
-  if (pattern->tick >= c_time + b_time) {
-    pattern->tick = 0;
-    pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
-  }
+  sT = ((ct + bt) * pick) * repeat;
+  if (pick == 2 && skip == 1) sT += ct + bt;
 
-  if (pattern->tick < c_time / 2) {
-    unpackColor(pattern->colors[pattern->cur_color], r0, g0, b0);
-    morphColor(pattern->tick, c_time / 2,
-               0, 0, 0, r0, g0, b0, _r, _g, _b);
-  } else if (pattern->tick < c_time) {
-    unpackColor(pattern->colors[pattern->cur_color], r0, g0, b0);
-    morphColor(pattern->tick - (c_time / 2), c_time - (c_time / 2),
-               r0, g0, b0, 0, 0, 0, _r, _g, _b);
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
-
-void _tracer(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
-  if (pattern->tick >= c_time + b_time) {
-    pattern->tick = 0;
-    pattern->cur_color = (pattern->cur_color + 1) % (pattern->num_colors - 1);
-  }
-
-  if (pattern->tick < c_time) {
-    unpackColor(pattern->colors[(pattern->cur_color + 1) % pattern->num_colors], _r, _g, _b);
-  } else {
-    unpackColor(pattern->colors[0], _r, _g, _b);
-  }
-}
-
-void _dashdops(Pattern* pattern, uint16_t c_time, uint16_t d_time, uint16_t b_time, uint8_t dops) {
-  pattern->counter1 = pattern->num_colors - 1;
-  if (pattern->tick >= (pattern->counter1 * c_time) + ((d_time + b_time) * dops) + b_time) {
-    pattern->tick = 0;
-  }
-
-  if (pattern->tick < pattern->counter1 * c_time) {
-    unpackColor(pattern->colors[(pattern->tick / c_time) + 1], _r, _g, _b);
-  } else {
-    pattern->counter0 = pattern->tick - (pattern->counter1 * c_time);
-    if (pattern->counter0 % (d_time + b_time) >= b_time) {
-      unpackColor(pattern->colors[0], _r, _g, _b);
-    } else {
-      _r = 0; _g = 0; _b = 0;
-    }
-  }
-}
-
-void _blinke(Pattern* pattern, uint16_t c_time, uint16_t b_time) {
-  if (pattern->tick >= (pattern->num_colors * c_time) + b_time) {
-    pattern->tick = 0;
-  }
-
-  if (pattern->tick < pattern->num_colors * c_time) {
-    unpackColor(pattern->colors[pattern->tick / c_time], _r, _g, _b);
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
-
-void _edge(Pattern* pattern, uint16_t c_time, uint16_t e_time, uint16_t b_time) {
-  pattern->counter0 = pattern->num_colors - 1;
-  if (pattern->tick >= (pattern->counter0 * c_time * 2) + e_time + b_time) {
-    pattern->tick = 0;
-  }
-
-  if (pattern->tick < pattern->counter0 * c_time) {
-    unpackColor(pattern->colors[pattern->counter0 - (pattern->tick / c_time)], _r, _g, _b);
-  } else if (pattern->tick < (pattern->counter0 * c_time) + e_time) {
-    unpackColor(pattern->colors[0], _r, _g, _b);
-  } else if (pattern->tick < (pattern->counter0 * c_time * 2) + e_time) {
-    pattern->counter1 = ((pattern->tick - ((pattern->counter0 * c_time) + e_time)) / c_time) + 1;
-    unpackColor(pattern->colors[pattern->counter1], _r, _g, _b);
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
-
-uint16_t getLegoTime(uint8_t mult) {
-  switch (random(0, 3)) {
-    case 0:
-      return 2 * mult;
-    case 1:
-      return 8 * mult;
-    default:
-      return 16 * mult;
-  }
-}
-
-void _lego(Pattern* pattern, uint16_t b_time, uint8_t mult) {
-  if (pattern->counter0 == 0) pattern->counter0 = getLegoTime(mult);
-  if (pattern->tick >= pattern->counter0 + b_time) {
-    pattern->tick = 0;
-    pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
-    pattern->counter0 = getLegoTime(mult);
-  }
-
-  if (pattern->tick < pattern->counter0) {
-    unpackColor(pattern->colors[pattern->cur_color], _r, _g, _b);
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
-
-void _chase(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t steps) {
-  if (pattern->tick >= c_time + b_time) {
-    pattern->tick = 0;
-    pattern->counter0++;
-    if (pattern->counter0 >= steps - 1) {
-      pattern->counter0 = 0;
-      pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
-    }
-  }
-
-  if (pattern->tick < c_time) {
-    pattern->counter1 = pattern->tick / (c_time / steps);
-    if (pattern->counter0 == 0) {
-      unpackColor(pattern->colors[pattern->cur_color], _r, _g, _b);
-    } else {
-      if (pattern->counter1 < pattern->counter0) {
-        unpackColor(pattern->colors[(pattern->cur_color + 1) % pattern->num_colors], _r, _g, _b);
-      } else if (pattern->counter1 == pattern->counter0) {
-        _r = 0; _g = 0; _b = 0;
+  if (p->tick >= sT + lt) {
+    p->tick = 0;
+    p->cur_color += skip;
+    if (p->cur_color >= p->num_colors) {
+      if (pick == skip) {
+        p->cur_color = 0;
       } else {
-        unpackColor(pattern->colors[pattern->cur_color], _r, _g, _b);
-      }
-    }
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
-
-void _morph(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t steps) {
-  if (pattern->tick >= c_time + b_time) {
-    pattern->tick = 0;
-    pattern->counter0++;
-    if (pattern->counter0 >= steps) {
-      pattern->counter0 = 0;
-      pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
-    }
-  }
-
-  if (pattern->tick < c_time) {
-    unpackColor(pattern->colors[pattern->cur_color], r0, g0, b0);
-    unpackColor(pattern->colors[(pattern->cur_color + 1) % pattern->num_colors], r1, g1, b1);
-    morphColor(pattern->tick + ((c_time + b_time) * pattern->counter0), (c_time + b_time) * steps,
-               r0, g0, b0, r1, g1, b1, _r, _g, _b);
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
-
-void _comet(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t per_step) {
-  if (pattern->tick >= c_time + b_time) {
-    pattern->tick = 0;
-    pattern->counter0 += (pattern->counter1 == 0) ? per_step : -1 * per_step;
-    pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
-    if (pattern->counter0 <= 0) {
-      pattern->counter1 = 0;
-    } else if (pattern->counter0 >= c_time) {
-      pattern->counter1 = 1;
-    }
-  }
-
-  if (pattern->tick <= pattern->counter0) {
-    unpackColor(pattern->colors[pattern->cur_color], _r, _g, _b);
-  } else {
-    _r = 0; _g = 0; _b = 0;
-  }
-}
-
-void _candy(Pattern* pattern, uint16_t c_time, uint16_t b_time, uint8_t pick, uint8_t repeat) {
-  if (pattern->tick >= c_time + b_time) {
-    pattern->tick = 0;
-    pattern->counter0++;
-    if (pattern->counter0 >= pick) {
-      pattern->counter0 = 0;
-      pattern->counter1++;
-      if (pattern->counter1 >= repeat) {
-        pattern->counter1 = 0;
-        pattern->cur_color = (pattern->cur_color + 1) % pattern->num_colors;
+        p->cur_color %= p->num_colors;
       }
     }
   }
 
-  if (pattern->tick < c_time) {
-    unpackColor(pattern->colors[(pattern->cur_color + pattern->counter0) % pattern->num_colors], _r, _g, _b);
+  if (doit) {
+  if (p->tick < sT) {
+    if (p->tick % (ct + bt) < ct) {
+      c = ((p->tick / (ct + bt)) % pick) + p->cur_color;
+      if (pick == skip) {
+        if (c >= p->num_colors) {
+          _r = _g = _b = 0;
+        } else {
+          unpackColor(p->colors[c], _r, _g, _b);
+        }
+      } else {
+        unpackColor(p->colors[c % p->num_colors], _r, _g, _b);
+      }
+    } else {
+      _r = _g = _b = 0;
+    }
   } else {
-    _r = 0; _g = 0; _b = 0;
+    _r = _g = _b = 0;
+  }
   }
 }
 
-void _user_pattern(Pattern* pattern, uint8_t idx) {
-  switch (user_patterns[idx][0]) {
-    case BASE_STROBE:
-      _strobe(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
-      break;
-    case BASE_PULSE:
-      _pulse(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
-      break;
-    case BASE_TRACER:
-      _tracer(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
-      break;
-    case BASE_DASHDOPS:
-      _dashdops(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
-          (user_patterns[idx][5] << 8) + user_patterns[idx][6],
-          user_patterns[idx][7]);
-      break;
-    case BASE_BLINKE:
-      _blinke(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4]);
-      break;
-    case BASE_EDGE:
-      _edge(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
-          (user_patterns[idx][5] << 8) + user_patterns[idx][6]);
-      break;
-    case BASE_LEGO:
-      _lego(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          user_patterns[idx][3]);
-      break;
-    case BASE_CHASE:
-      _chase(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
-          user_patterns[idx][5]);
-      break;
-    case BASE_MORPH:
-      _morph(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
-          user_patterns[idx][5]);
-      break;
-    case BASE_COMET:
-      _comet(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
-          user_patterns[idx][5]);
-      break;
-    case BASE_CANDY:
-      _candy(pattern,
-          (user_patterns[idx][1] << 8) + user_patterns[idx][2],
-          (user_patterns[idx][3] << 8) + user_patterns[idx][4],
-          user_patterns[idx][5],
-          user_patterns[idx][6]);
-      break;
-    default:
-      break;
+void _tracer(Pattern* p, uint8_t cst, uint8_t cbt, uint8_t tst, uint8_t tbt,
+             uint8_t repeat, uint8_t pick, uint8_t skip, uint8_t pad, bool doit) {
+  int8_t c;
+  uint16_t t, tT, oT;
+
+  pick = (pick == 0) ? (p->num_colors - 1) : pick;
+  skip = (skip == 0 || skip > pick) ? pick : skip;
+
+  if (pad == 0) {
+    oT = ((cst + cbt) * pick) + cbt;
+    if (repeat == 0) {
+      tT = tbt + tst;
+    } else {
+      tT = ((tbt + tst) * repeat) - tbt;
+    }
+  } else {
+    tT = ((tbt + tst) * repeat) + tbt;
+    oT = ((cst + cbt) * pick) - cbt;
+  }
+
+  if (p->tick >= oT + tT) {
+    p->tick = 0;
+    p->cur_color += skip;
+    if (p->cur_color >= (p->num_colors - 1)) {
+      if (pick == skip) {
+        p->cur_color = 0;
+      } else {
+        p->cur_color %= p->num_colors - 1;
+      }
+    }
+  }
+
+  if (doit) {
+  if (p->tick < oT) {
+    if (pad == 0) {
+      if (p->tick % (cst + cbt) < cbt) {
+        c = -1;
+      } else {
+        c = (p->tick / (cbt + cst)) + p->cur_color + 1;
+      }
+    } else {
+      if (p->tick % (cst + cbt) < cst) {
+        c = (p->tick / (cbt + cst)) + p->cur_color + 1;
+      } else {
+        c = -1;
+      }
+    }
+  } else {
+    t = p->tick - oT;
+    if (pad == 1 || repeat == 0) {
+      if (t % (tbt + tst) < tbt) {
+        c = -1;
+      } else {
+        c = 0;
+      }
+    } else {
+      if (t % (tbt + tst) < tst) {
+        c = 0;
+      } else {
+        _r = _g = _b = 0;
+      }
+    }
+  }
+
+  if (c == -1) {
+    _r = _g = _b = 0;
+  } else if (c == 0) {
+    unpackColor(p->colors[0], _r, _g, _b);
+  } else {
+    if (pick == skip) {
+      if (c > p->num_colors) {
+        _r = _g = _b = 0;
+      } else {
+        unpackColor(p->colors[c], _r, _g, _b);
+      }
+    } else {
+      unpackColor(p->colors[(c % (p->num_colors - 1)) + 1], _r, _g, _b);
+    }
+  }
+  }
+}
+
+void _edge(Pattern* p, uint8_t cst, uint8_t cbt, uint8_t est, uint8_t ebt,
+           uint8_t pick, bool doit) {
+  int8_t c;
+  uint16_t t, hT;
+
+  pick = (pick == 0) ? p->num_colors : pick;
+  hT = (cst + cbt) * (pick - 1);
+
+  if (p->tick >= (hT + hT + est + ebt)) {
+    p->tick = 0;
+    p->cur_color += pick;
+    if (p->cur_color >= p->num_colors) {
+      p->cur_color = 0;
+    }
+  }
+
+  if (doit) {
+  if (p->tick < hT) {
+    t = p->tick;
+    if (t % (cst + cbt) < cst) {
+      c = ((pick - 1) - (t / (cst + cbt))) + p->cur_color;
+    } else {
+      c = -1;
+    }
+  } else if (p->tick < hT + est) {
+    c = p->cur_color;
+  } else if (p->tick < hT + hT + est) {
+    t = p->tick - (hT + est);
+    if (t % (cst + cbt) < cst) {
+      c = ((t / (cst + cbt)) + 1) + p->cur_color;
+    } else {
+      c = -1;
+    }
+  } else {
+    c = -1;
+  }
+
+  if (c == -1 || c >= p->num_colors) {
+    _r = _g = _b = 0;
+  } else {
+    unpackColor(p->colors[c], _r, _g, _b);
+  }
+  }
+}
+
+void _flux(Pattern *p, uint8_t ct, uint8_t bt, uint8_t lt, uint8_t dir,
+           uint8_t change, uint8_t dynamic, uint8_t target, uint8_t segments, bool doit) {
+  int8_t c;
+  uint16_t t, cT, bT, sT;
+  uint8_t segs;
+
+  if (target == 0) {
+    cT = ct;
+    if (dir == 0) {
+      segs = segments;
+      bT = bt * (segments - p->cntr);
+    } else if (dir == 1) {
+      segs = segments;
+      bT = bt * (p->cntr + 1);
+    } else {
+      segs = (segments - 1) * 2;
+      if (p->cntr < segments) {
+        bT = bt * (p->cntr + 1);
+      } else {
+        bT = bt * (segs - (p->cntr - 1));
+      }
+    }
+
+    if (dynamic == 0) {
+      sT = cT + bT;
+    } else {
+      sT = cT + (bt * segments);
+    }
+  } else {
+    bT = bt;
+    if (dir == 0) {
+      segs = segments;
+      cT = ct * (segments - p->cntr);
+    } else if (dir == 1) {
+      segs = segments;
+      cT = ct * (p->cntr + 1);
+    } else {
+      segs = segments;
+      if (p->cntr < segments) {
+        cT = ct * (p->cntr + 1);
+      } else {
+        cT = ct * (segs - (p->cntr - 1));
+      }
+    }
+
+    if (dynamic == 0) {
+      sT = cT + bT;
+    } else {
+      sT = (ct * segments) + bT;
+    }
+  }
+
+  if (change > 1 && p->cur_color == (p->num_colors - 1)) sT += lt;
+
+  if (p->tick >= sT) {
+    p->tick = 0;
+    if (change == 0) {
+      p->cntr += 1;
+      if (p->cntr > segs) {
+        p->cur_color = (p->cur_color + 1) % p->num_colors;
+        p->cntr = 0;
+      }
+    } else if (change == 1) {
+      p->cntr += 1;
+      p->cur_color = (p->cur_color + 1) % p->num_colors;
+      if (p->cntr > segs) {
+        p->cntr = 0;
+      }
+    } else {
+      p->cur_color += 1;
+      if (p->cur_color >= p->num_colors) {
+        p->cur_color = 0;
+        p->cntr = 1;
+        if (p->cntr > segs) {
+          p->cntr = 0;
+        }
+      }
+    }
+  }
+
+  if (doit) {
+  if (p->tick < cT) {
+    unpackColor(p->colors[p->cur_color], _r, _g, _b);
+  } else {
+    _r = _g = _b = 0;
+  }
+  }
+}
+
+void _fade(Pattern* p, uint8_t cst, uint8_t cbt, uint8_t est, uint8_t ebt,
+           uint8_t type, uint8_t steps, bool doit) {
+  int8_t c;
+  uint16_t t, sT;
+
+  sT = (cst + cbt) * steps;
+  if (type == 0) {
+    if (p->tick >= sT + est + ebt) {
+      p->tick = 0;
+      p->cur_color = (p->cur_color + 1) % p->num_colors;
+    }
+
+    if (doit) {
+    if (p->tick < sT) {
+      if (p->tick % (cbt + cst) < cst) {
+        unpackColor(p->colors[p->cur_color], r0, g0, b0);
+        morphColor(p->tick, sT, 0, 0, 0, r0, g0, b0, _r, _g, _b);
+      } else {
+        _r = _g = _b = 0;
+      }
+    } else if (p->tick < sT + est) {
+      unpackColor(p->colors[p->cur_color], _r, _g, _b);
+    } else {
+      _r = _g = _b = 0;
+    }
+    }
+  } else if (type == 1) {
+    if (p->tick >= sT + est + ebt) {
+      p->tick = 0;
+      p->cur_color = (p->cur_color + 1) % p->num_colors;
+    }
+
+    if (doit) {
+    if (p->tick < est) {
+      unpackColor(p->colors[p->cur_color], _r, _g, _b);
+    } else if (p->tick < sT + est) {
+      t = p->tick - est;
+      if (t % (cst + cbt) < cbt) {
+        _r = _g = _b = 0;
+      } else {
+        unpackColor(p->colors[p->cur_color], r0, g0, b0);
+        morphColor(t, sT, r0, g0, b0, 0, 0, 0, _r, _g, _b);
+      }
+    } else {
+      _r = _g = _b = 0;
+    }
+    }
+  } else if (type == 2) {
+    if (p->tick >= sT + sT + est + ebt) {
+      p->tick = 0;
+      p->cur_color = (p->cur_color + 1) % p->num_colors;
+    }
+
+    if (doit) {
+    if (p->tick < sT) {
+      if (p->tick % (cst + cbt) < cst) {
+        unpackColor(p->colors[p->cur_color], r0, g0, b0);
+        morphColor(p->tick, sT, 0, 0, 0, r0, g0, b0, _r, _g, _b);
+      } else {
+        _r = _g = _b = 0;
+      }
+    } else if (p->tick < sT + est) {
+      unpackColor(p->colors[p->cur_color], _r, _g, _b);
+    } else if (p->tick < sT + sT + est) {
+      t = p->tick - (sT + est);
+      if (t % (cst + cbt) < cbt) {
+        _r = _g = _b = 0;
+      } else {
+        unpackColor(p->colors[p->cur_color], r0, g0, b0);
+        morphColor(t, sT, r0, g0, b0, 0, 0, 0, _r, _g, _b);
+      }
+    } else {
+      _r = _g = _b = 0;
+    }
+    }
+  } else if (type == 3) {
+    if (p->tick >= sT + est + ebt) {
+      p->tick = 0;
+      p->cur_color = (p->cur_color + 1) % p->num_colors;
+    }
+
+    if (doit) {
+    if (p->tick < est) {
+      unpackColor(p->colors[p->cur_color], _r, _g, _b);
+    } else if (p->tick < sT + est) {
+      t = p->tick - est;
+      if (t % (cst + cbt) < cbt) {
+        _r = _g = _b = 0;
+      } else {
+        unpackColor(p->colors[p->cur_color],                       r0, g0, b0);
+        unpackColor(p->colors[(p->cur_color + 1) % p->num_colors], r1, g1, b1);
+        morphColor(t, sT, r0, g0, b0, r1, g1, b1, _r, _g, _b);
+      }
+    } else {
+      _r = _g = _b = 0;
+    }
+    }
+  } else {
+    if (p->tick >= sT + est + ebt) {
+      p->tick = 0;
+      p->cur_color = (p->cur_color + 1) % p->num_colors;
+    }
+
+    if (doit) {
+    if (p->tick < sT) {
+      t = p->tick;
+      if (t % (cst + cbt) < cst) {
+        unpackColor(p->colors[(p->cur_color + 1) % p->num_colors], r0, g0, b0);
+        unpackColor(p->colors[p->cur_color],                       r1, g1, b1);
+        morphColor(t, sT, r0, g0, b0, r1, g1, b1, _r, _g, _b);
+      } else {
+        _r = _g = _b = 0;
+      }
+    } else if (p->tick < sT + est) {
+      unpackColor(p->colors[p->cur_color], _r, _g, _b);
+    } else {
+      _r = _g = _b = 0;
+    }
+    }
   }
 }
 
@@ -329,241 +395,198 @@ void _user_pattern(Pattern* pattern, uint8_t idx) {
  ** PATTERN CLASS
  ******************************************************************************/
 Pattern::Pattern(uint8_t _pattern, uint8_t _num_colors,
-             uint8_t c00, uint8_t c01, uint8_t c02, uint8_t c03,
-             uint8_t c04, uint8_t c05, uint8_t c06, uint8_t c07,
-             uint8_t c08, uint8_t c09, uint8_t c10, uint8_t c11,
-             uint8_t c12, uint8_t c13, uint8_t c14, uint8_t c15) {
+                 uint8_t c00, uint8_t c01, uint8_t c02, uint8_t c03,
+                 uint8_t c04, uint8_t c05, uint8_t c06, uint8_t c07,
+                 uint8_t c08, uint8_t c09, uint8_t c10, uint8_t c11,
+                 uint8_t c12, uint8_t c13, uint8_t c14, uint8_t c15) {
   pattern = _pattern;
   num_colors = _num_colors;
-  colors[0]  = c00;
-  colors[1]  = c01;
-  colors[2]  = c02;
-  colors[3]  = c03;
-  colors[4]  = c04;
-  colors[5]  = c05;
-  colors[6]  = c06;
-  colors[7]  = c07;
-  colors[8]  = c08;
-  colors[9]  = c09;
-  colors[10] = c10;
-  colors[11] = c11;
-  colors[12] = c12;
-  colors[13] = c13;
-  colors[14] = c14;
-  colors[15] = c15;
+  colors[0]  = c00; colors[1]  = c01; colors[2]  = c02; colors[3]  = c03;
+  colors[4]  = c04; colors[5]  = c05; colors[6]  = c06; colors[7]  = c07;
+  colors[8]  = c08; colors[9]  = c09; colors[10] = c10; colors[11] = c11;
+  colors[12] = c12; colors[13] = c13; colors[14] = c14; colors[15] = c15;
 }
 
 void Pattern::load(uint16_t addr) {
   pattern    = EEPROM.read(addr + 0);
   num_colors = EEPROM.read(addr + 1);
-  colors[0]  = EEPROM.read(addr + 2);
-  colors[1]  = EEPROM.read(addr + 3);
-  colors[2]  = EEPROM.read(addr + 4);
-  colors[3]  = EEPROM.read(addr + 5);
-  colors[4]  = EEPROM.read(addr + 6);
-  colors[5]  = EEPROM.read(addr + 7);
-  colors[6]  = EEPROM.read(addr + 8);
-  colors[7]  = EEPROM.read(addr + 9);
-  colors[8]  = EEPROM.read(addr + 10);
-  colors[9]  = EEPROM.read(addr + 11);
-  colors[10] = EEPROM.read(addr + 12);
-  colors[11] = EEPROM.read(addr + 13);
-  colors[12] = EEPROM.read(addr + 14);
-  colors[13] = EEPROM.read(addr + 15);
-  colors[14] = EEPROM.read(addr + 16);
-  colors[15] = EEPROM.read(addr + 17);
+  for (uint8_t i = 0; i < NUM_COLORS; i++) {
+    colors[i]  = EEPROM.read(addr + 2 + i);
+  }
 }
 
 void Pattern::save(uint16_t addr) {
-  EEPROM.update(addr +  0, pattern);
-  EEPROM.update(addr +  1, num_colors);
-  EEPROM.update(addr +  2, colors[0]);
-  EEPROM.update(addr +  3, colors[1]);
-  EEPROM.update(addr +  4, colors[2]);
-  EEPROM.update(addr +  5, colors[3]);
-  EEPROM.update(addr +  6, colors[4]);
-  EEPROM.update(addr +  7, colors[5]);
-  EEPROM.update(addr +  8, colors[6]);
-  EEPROM.update(addr +  9, colors[7]);
-  EEPROM.update(addr + 10, colors[8]);
-  EEPROM.update(addr + 11, colors[9]);
-  EEPROM.update(addr + 12, colors[10]);
-  EEPROM.update(addr + 13, colors[11]);
-  EEPROM.update(addr + 14, colors[12]);
-  EEPROM.update(addr + 15, colors[13]);
-  EEPROM.update(addr + 16, colors[14]);
-  EEPROM.update(addr + 17, colors[15]);
+  EEPROM.update(addr + 0, pattern);
+  EEPROM.update(addr + 1, num_colors);
+  for (uint8_t i = 0; i < NUM_COLORS; i++) {
+    EEPROM.update(addr + 2 + i, colors[i]);
+  }
 }
 
-void Pattern::render(uint8_t& r, uint8_t& g, uint8_t& b) {
+void Pattern::reset() { tick = cur_color = cntr = 0; }
+
+void Pattern::render(uint8_t& r, uint8_t& g, uint8_t& b, bool doit) {
   switch (pattern) {
-    case PATTERN_STROBE_FAST:
-      _strobe(this, 5, 8);
+    case P_RIBBON:
+      _strobe(this, 25, 0, 0, 0, 0, 0, doit);
       break;
-    case PATTERN_STROBE:
-      _strobe(this, 10, 15);
+    case P_HYPER:
+      _strobe(this, 50, 50, 0, 0, 0, 0, doit);
       break;
-    case PATTERN_STROBE_SLOW:
-      _strobe(this, 20, 30);
+    case P_STROBE:
+      _strobe(this, 9, 16, 0, 0, 0, 0, doit);
       break;
-    case PATTERN_NANODOPS:
-      _strobe(this, 1, 10);
+    case P_DOPS:
+      _strobe(this, 3, 22, 0, 0, 0, 0, doit);
       break;
-    case PATTERN_DOPS:
-      _strobe(this, 3, 20);
+    case P_SPAZ:
+      _strobe(this, 5, 45, 0, 0, 0, 0, doit);
       break;
-    case PATTERN_STROBIE:
-      _strobe(this, 6, 40);
+    case P_SIGNAL:
+      _strobe(this, 10, 190, 0, 0, 0, 0, doit);
       break;
-    case PATTERN_SEIZURE:
-      _strobe(this, 12, 160);
+    case P_BLASTER:
+      _strobe(this, 5, 0, 85, 0, 0, 0, doit);
       break;
-    case PATTERN_ULTRA:
-      _strobe(this, 15, 15);
+    case P_STUTTER:
+      _strobe(this, 10, 5, 55, 0, 0, 0, doit);
       break;
-    case PATTERN_HYPER:
-      _strobe(this, 33, 32);
+    case P_STROBE2:
+      _strobe(this, 10, 5, 55, 8, 2, 1, doit);
       break;
-    case PATTERN_MEGA:
-      _strobe(this, 68, 67);
+    case P_HYPER3:
+      _strobe(this, 10, 5, 55, 4, 3, 1, doit);
       break;
-    case PATTERN_PULSE_STROBE:
-      _pulse(this, 25, 15);
+    case P_DOPS3:
+      _strobe(this, 10, 5, 55, 8, 3, 1, doit);
       break;
-    case PATTERN_PULSE_FAST:
-      _pulse(this, 100, 25);
+    case P_BLASTER3:
+      _strobe(this, 10, 5, 55, 1, 3, 3, doit);
       break;
-    case PATTERN_PULSE:
-      _pulse(this, 200, 50);
+    case P_STUTTER3:
+      _strobe(this, 10, 5, 55, 1, 3, 3, doit);
       break;
-    case PATTERN_PULSE_SLOW:
-      _pulse(this, 400, 100);
+    case P_TRACER:
+      _tracer(this, 5, 0, 20, 0, 1, 1, 1, 0, doit);
       break;
-    case PATTERN_LASER:
-      _tracer(this, 3, 20);
+    case P_DASHDOPS:
+      _tracer(this, 15, 0, 3, 22, 5, 0, 0, 1, doit);
       break;
-    case PATTERN_TRACER:
-      _tracer(this, 6, 44);
+    case P_DOPSDASH:
+      _tracer(this, 3, 22, 50, 0, 1, 0, 0, 0, doit);
       break;
-    case PATTERN_TAZER:
-      _tracer(this, 17, 34);
+    case P_SANDWICH:
+      _tracer(this, 9, 16, 9, 0, 0, 1, 0, 0, doit);
       break;
-    case PATTERN_DASHDOPS2:
-      _dashdops(this, 3, 3, 20, 2);
+    case P_HYPENATED:
+      _tracer(this, 25, 25, 25, 0, 0, 1, 0, 0, doit);
       break;
-    case PATTERN_DASHDOPS7:
-      _dashdops(this, 8, 3, 20, 7);
+    case P_DASHED:
+      _tracer(this, 10, 0, 30, 30, 1, 3, 1, 1, doit);
       break;
-    case PATTERN_DASHSTROBE:
-      _dashdops(this, 5, 10, 16, 4);
+    case P_DOTTED:
+      _tracer(this, 8, 2, 43, 0, 0, 3, 1, 0, doit);
       break;
-    case PATTERN_DASHDASH:
-      _dashdops(this, 5, 40, 20, 1);
+    case P_FIREWORK:
+      _tracer(this, 5, 5, 20, 20, 0, 3, 1, 0, doit);
       break;
-    case PATTERN_QUICKE:
-      _blinke(this, 5, 50);
+    case P_BOTTLEROCKET:
+      _tracer(this, 5, 5, 10, 40, 0, 2, 1, 0, doit);
       break;
-    case PATTERN_BLINKE:
-      _blinke(this, 10, 100);
+    case P_STRETCH:
+      _flux(this, 3, 0, 0, 2, 2, 1, 1, 8, doit);
       break;
-    case PATTERN_STRIBBON:
-      _blinke(this, 20, 100);
+    case P_DOPWAVE:
+      _flux(this, 3, 1, 0, 2, 1, 0, 0, 24, doit);
       break;
-    case PATTERN_RAZOR:
-      _edge(this, 2, 6, 20);
+    case P_SHAPESHIFT:
+      _flux(this, 5, 0, 20, 2, 2, 0, 1, 4, doit);
       break;
-    case PATTERN_EDGE:
-      _edge(this, 4, 16, 40);
+    case P_COMET:
+      _flux(this, 2, 10, 0, 0, 0, 1, 1, 10, doit);
       break;
-    case PATTERN_SWORD:
-      _edge(this, 8, 20, 60);
+    case P_METEOR:
+      _flux(this, 2, 10, 0, 1, 0, 1, 1, 10, doit);
       break;
-    case PATTERN_BARBWIRE:
-      _edge(this, 2, 6, 60);
+    case P_EMBERS:
+      _flux(this, 4, 10, 0, 2, 0, 1, 1, 5, doit);
       break;
-    case PATTERN_LEGO_MINI:
-      _lego(this, 8, 1);
+    case P_INFLUX:
+      _flux(this, 5, 15, 0, 2, 2, 0, 1, 4, doit);
       break;
-    case PATTERN_LEGO:
-      _lego(this, 16, 2);
+    case P_SWORD:
+      _edge(this, 8, 0, 16, 40, 0, doit);
       break;
-    case PATTERN_LEGO_HUGE:
-      _lego(this, 50, 5);
+    case P_SWORD3:
+      _edge(this, 8, 0, 16, 40, 3, doit);
       break;
-    case PATTERN_CHASE_SHORT:
-      _chase(this, 50, 10, 5);
+    case P_BARBS:
+      _edge(this, 5, 3, 16, 40, 0, doit);
       break;
-    case PATTERN_CHASE:
-      _chase(this, 100, 20, 5);
+    case P_BARBS3:
+      _edge(this, 5, 3, 16, 40, 3, doit);
       break;
-    case PATTERN_CHASE_LONG:
-      _chase(this, 500, 50, 10);
+    case P_CYCLOPS:
+      _edge(this, 20, 0, 3, 0, 0, doit);
       break;
-    case PATTERN_MORPH:
-      _morph(this, 500, 0, 1);
+    case P_FADEIN:
+      _fade(this, 150, 50, 0, 0, 0, 1, doit);
       break;
-    case PATTERN_MORPH_SLOW:
-      _morph(this, 1000, 0, 1);
+    case P_STROBEIN:
+      _fade(this, 25, 25, 25, 25, 0, 7, doit);
       break;
-    case PATTERN_MORPH_STROBE:
-      _morph(this, 10, 16, 8);
+    case P_FADEOUT:
+      _fade(this, 150, 50, 0, 0, 1, 1, doit);
       break;
-    case PATTERN_MORPH_HYPER:
-      _morph(this, 34, 34, 4);
+    case P_STROBEOUT:
+      _fade(this, 25, 25, 25, 25, 1, 7, doit);
       break;
-    case PATTERN_RIBBON5:
-      _strobe(this, 10, 0);
+    case P_PULSE:
+      _fade(this, 170, 0, 0, 30, 2, 1, doit);
       break;
-    case PATTERN_RIBBON10:
-      _strobe(this, 20, 0);
+    case P_PULSAR:
+      _fade(this, 25, 25, 50, 50, 2, 3, doit);
       break;
-    case PATTERN_RIBBON20:
-      _strobe(this, 40, 0);
+    case P_MORPH:
+      _fade(this, 250, 0, 0, 0, 3, 1, doit);
       break;
-    case PATTERN_COMET_SHORT:
-      _comet(this, 30, 10, 2);
+    case P_DOPMORPH:
+      _fade(this, 3, 22, 0, 0, 3, 8, doit);
       break;
-    case PATTERN_COMET:
-      _comet(this, 100, 20, 5);
+    case P_SPAZMORPH:
+      _fade(this, 5, 45, 0, 0, 3, 8, doit);
       break;
-    case PATTERN_COMET_LONG:
-      _comet(this, 250, 20, 10);
+    case P_STROBEMORPH:
+      _fade(this, 9, 16, 0, 0, 3, 8, doit);
       break;
-    case PATTERN_CANDY2:
-      _candy(this, 10, 16, 2, 12);
+    case P_HYPERMORPH:
+      _fade(this, 50, 50, 0, 0, 3, 4, doit);
       break;
-    case PATTERN_CANDY3:
-      _candy(this, 10, 16, 3, 8);
+    case P_DASHMORPH:
+      _fade(this, 9, 16, 34, 16, 3, 4, doit);
       break;
-    case PATTERN_CANDOPS:
-      _candy(this, 3, 20, 3, 8);
+    case P_FUSE:
+      _fade(this, 250, 0, 0, 0, 4, 1, doit);
       break;
-    case PATTERN_CANDYCRUSH:
-      _candy(this, 34, 34, 3, 4);
+    case P_DOPFUSE:
+      _fade(this, 3, 22, 0, 0, 4, 8, doit);
       break;
-    case PATTERN_USER_00:
-    case PATTERN_USER_01:
-    case PATTERN_USER_02:
-    case PATTERN_USER_03:
-    case PATTERN_USER_04:
-    case PATTERN_USER_05:
-    case PATTERN_USER_06:
-    case PATTERN_USER_07:
-    case PATTERN_USER_08:
-    case PATTERN_USER_09:
-    case PATTERN_USER_10:
-    case PATTERN_USER_11:
-    case PATTERN_USER_12:
-    case PATTERN_USER_13:
-    case PATTERN_USER_14:
-    case PATTERN_USER_15:
-      _user_pattern(this, pattern - 48);
+    case P_SPAZFUSE:
+      _fade(this, 5, 45, 0, 0, 4, 8, doit);
       break;
+    case P_STROBEFUSE:
+      _fade(this, 9, 16, 0, 0, 4, 8, doit);
+      break;
+    case P_HYPERFUSE:
+      _fade(this, 50, 50, 0, 0, 4, 4, doit);
+      break;
+    case P_DASHFUSE:
+      _fade(this, 9, 16, 34, 16, 4, 4, doit);
+      break;
+
     default:
       break;
   }
   tick++;
   r = _r; g = _g; b = _b;
 }
-
-void Pattern::reset() { tick = cur_color = counter0 = counter1 = 0; }
