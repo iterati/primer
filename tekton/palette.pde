@@ -121,8 +121,8 @@ class PalettePanel {
   }
 
   void update(int addr, int val) {
-    int v = addr / 4;
-    int c = addr % 4;
+    int v = addr / 3;
+    int c = addr % 3 ;
     color_palette[v][c] = val;
 
     btnPalette[v][0].setColorBackground(getColor(v));
@@ -137,15 +137,15 @@ class PalettePanel {
   }
 
   void guiSetR() {
-    set((selected * 4), int(sldRed.getValue()));
+    set((selected * 3), int(sldRed.getValue()));
   }
 
   void guiSetG() {
-    set((selected * 4) + 1, int(sldGreen.getValue()));
+    set((selected * 3) + 1, int(sldGreen.getValue()));
   }
 
   void guiSetB() {
-    set((selected * 4) + 2, int(sldBlue.getValue()));
+    set((selected * 3) + 2, int(sldBlue.getValue()));
   }
 
   void select(int val) {

@@ -1,68 +1,64 @@
 String[] pattern_names = {
-  "STROBE FAST",
+  "RIBBON",
+  "HYPER",
   "STROBE",
-  "STROBE SLOW",
-  "NANODOPS",
+  "NANO",
   "DOPS",
   "STROBIE",
-  "SEIZURE",
-  "ULTRA",
-  "HYPER",
-  "MEGA",
-  "PULSE STROBE",
-  "PULSE FAST",
-  "PULSE",
-  "PULSE SLOW",
-  "LASER",
+  "FAINT",
+  "SIGNAL",
+  "BLASTER",
+  "HEAVYBLASTER",
+  "AUTOBLASTER",
+  "STROBE2",
+  "HYPER3",
+  "DOPS3",
+  "BLASTER3",
+  "HEAVYBLASTER3",
+  "AUTOBLASTER3",
   "TRACER",
-  "TAZER",
-  "DASHDOPS2",
-  "DASHDOPS7",
-  "DASHSTROBE",
-  "DASHDASH",
-  "QUICKE",
-  "BLINKE",
-  "STRIBBON",
-  "RAZOR",
-  "EDGE",
-  "SWORD",
-  "BARBWIRE",
-  "LEGO MINI",
-  "LEGO",
-  "LEGO HUGE",
-  "CHASE SHORT",
-  "CHASE",
-  "CHASE LONG",
-  "MORPH",
-  "MORPH SLOW",
-  "MORPH STROBE",
-  "MORPH HYPER",
-  "RIBBON5",
-  "RIBBON10",
-  "RIBBON20",
-  "COMET SHORT",
+  "DASHDOPS",
+  "DOPSDASH",
+  "STROBETRACER",
+  "HYPERTRACER",
+  "RIBBONTRACER",
+  "DOTTED",
+  "FIREWORK",
+  "BOTTLEROCKET",
+  "GROW",
+  "SHRINK",
+  "SPRING",
+  "WAVE",
+  "SHAPESHIFT",
   "COMET",
-  "COMET LONG",
-  "CANDY2",
-  "CANDY3",
-  "CANDOPS",
-  "CANDYCRUSH",
-   //"USER 01",
-   //"USER 02",
-   //"USER 03",
-   //"USER 04",
-   //"USER 05",
-   //"USER 06",
-   //"USER 07",
-   //"USER 08",
-   //"USER 09",
-   //"USER 10",
-   //"USER 11",
-   //"USER 12",
-   //"USER 13",
-   //"USER 14",
-   //"USER 15",
-   //"USER 16",
+  "METEOR",
+  "EMBERS",
+  "INFLUX",
+  "SWORD",
+  "SWORD5",
+  "RAZOR",
+  "RAZOR5",
+  "BARBS",
+  "BARBS5",
+  "CYCLOPS",
+  "FADEIN",
+  "STROBEIN",
+  "FADEOUT",
+  "STROBEOUT",
+  "PULSE",
+  "PULSAR",
+  "MORPH",
+  "DOPMORPH",
+  "STROBIEMORPH",
+  "STROBEMORPH",
+  "HYPERMORPH",
+  "DASHMORPH",
+  "FUSE",
+  "DOPFUSE",
+  "STROBEFUSE",
+  "STROBIEFUSE",
+  "HYPERFUSE",
+  "DASHFUSE",
 };
 
 String[] accel_mode_names = {"Off", "Speed", "Tilt X", "Tilt Y", "Flip Z"};
@@ -259,7 +255,7 @@ class PresetEditor {
     dd.setColorActive(color(255, 128));
     dd.setItemHeight(20);
     dd.setBarHeight(15);
-    for (int j = 0; j < 48; j++) {
+    for (int j = 0; j < 60; j++) {
       dd.addItem("Pattern " + var + ": " + pattern_names[j], j);
     }
     dd.close();
@@ -287,7 +283,7 @@ class PresetEditor {
     return 0;
   }
 
-  int set(int target, int addr, int val) {
+  int setv(int target, int addr, int val) {
     val = update(target, addr, val);
     sendCmd('W', target, addr, val);
     return val;
@@ -315,7 +311,7 @@ class PresetEditor {
 
   void guiChangeColor(int val) {
     if (selected_s >= 0) {
-      set(cur_preset_idx, (selected_v * 18) + selected_s + 4, val);
+      setv(cur_preset_idx, (selected_v * 18) + selected_s + 4, val);
     }
   }
 
@@ -412,13 +408,13 @@ class PresetEditor {
 
   void decompressMode(int target, String s) {
     if (s.length() == 69) {
-      set(target, 0, decode(s.charAt(0)) % 8);
-      set(target, 1, decode(s.charAt(0)) / 8);
+      setv(target, 0, decode(s.charAt(0)) % 8);
+      setv(target, 1, decode(s.charAt(0)) / 8);
       for (int v = 0; v < 2; v++) {
-        set(target, (v * 18) + 2, decode(s.charAt((v * 34) + 1)));
-        set(target, (v * 18) + 3, decode(s.charAt((v * 34) + 2)));
+        setv(target, (v * 18) + 2, decode(s.charAt((v * 34) + 1)));
+        setv(target, (v * 18) + 3, decode(s.charAt((v * 34) + 2)));
         for (int c = 0; c < 16; c++) {
-          set(target, (v * 18) + c + 4,
+          setv(target, (v * 18) + c + 4,
               (decode(s.charAt((v * 34) + (2 * c) + 3)) << 6) +
               decode(s.charAt((v * 34) + (2 * c) + 4)));
         }

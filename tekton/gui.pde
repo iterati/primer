@@ -1,7 +1,7 @@
 class GuiUI {
   Group grp;
   Button btnEditPresets, btnEditPalette, btnEditBundles, btnEditPatterns, btnExit;
-  Button btnReload, btnWrite, btnSave, btnLoad;
+  Button btnReload, btnWrite, btnSave, btnLoad, btnFlash, btnDisconnect;
   Textfield tfPath;
 
   GuiUI(int x, int y) {
@@ -74,9 +74,22 @@ class GuiUI {
       .setCaptionLabel("Load")
       .setGroup(grp);
 
+    btnLoad = cp5.addButton("guiFlash")
+      .setPosition(30, 280)
+      .setSize(60, 20)
+      .setColorBackground(color(64))
+      .setCaptionLabel("Flash")
+      .setGroup(grp);
+
+    btnLoad = cp5.addButton("guiDisconnect")
+      .setPosition(30, 310)
+      .setSize(60, 20)
+      .setColorBackground(color(64))
+      .setCaptionLabel("Disconnect")
+      .setGroup(grp);
 
     btnExit = cp5.addButton("guiExit")
-      .setPosition(30, 310)
+      .setPosition(30, 370)
       .setSize(60, 20)
       .setColorBackground(color(64))
       .setCaptionLabel("Exit")

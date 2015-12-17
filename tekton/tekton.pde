@@ -46,18 +46,16 @@ GuiUI guiui;
 PresetEditor preset_editor;
 PalettePanel palette_panel;
 BundleEditor bundle_editor;
-/* PatternEditor pattern_editor; */
 
 
 void setup() {
-  size(800, 600);
+  size(1000, 800);
   cp5 = new ControlP5(this);
 
   guiui = new GuiUI(0, 240);
   palette_panel = new PalettePanel(0, 0);
   preset_editor = new PresetEditor(0, 0);
   bundle_editor = new BundleEditor(0, 0);
-  /* pattern_editor = new PatternEditor(0, 0); */
 
   tlLoading = cp5.addTextlabel("loading")
     .setText("Connecting")
@@ -94,7 +92,6 @@ void draw() {
     preset_editor.hide();
     palette_panel.hide();
     bundle_editor.hide();
-    /* pattern_editor.hide(); */
   } else {
     tlLoading.hide();
     guiui.show();
@@ -102,22 +99,18 @@ void draw() {
       preset_editor.show();
       palette_panel.show();
       bundle_editor.hide();
-      /* pattern_editor.hide(); */
     } else if (gui_state == 1) {
       preset_editor.hide();
       palette_panel.show();
       bundle_editor.hide();
-      /* pattern_editor.hide(); */
     } else if (gui_state == 2) {
       preset_editor.hide();
       palette_panel.hide();
       bundle_editor.show();
-      /* pattern_editor.hide(); */
     } else if (gui_state == 3) {
       preset_editor.hide();
       palette_panel.hide();
       bundle_editor.hide();
-      /* pattern_editor.show(); */
     }
   }
 }
@@ -140,19 +133,14 @@ void readResp() {
     initialized = true;
     sendCmd('X', 10, 0, 0); // Change to gui play mode
     sendCmd('D', 99, 0, 0); // Get dump of everything
-  } else if (target == 250) { // Mode changed
-    /* cur_preset_idx = addr; */
-    println(cur_preset_idx + ": 250 " + addr + " " + val);
   } else if (target == 200) {
     cur_preset_idx = val;
     reading = true;
-    println(cur_preset_idx + ": 200 " + addr + " " + val);
   } else if (target == 201) {
     preset_editor.refresh();
     bundle_editor.refresh();
     palette_panel.refresh();
     reading = false;
-    println(cur_preset_idx + ": 201 " + addr + " " + val);
   } else {
     readData(target, addr, val);
   }
@@ -165,9 +153,7 @@ void readData(int target, int addr, int val) {
     bundle_editor.update(addr, val);
   } else if (target == 17) {
     palette_panel.update(addr, val);
-    color_palette[addr / 4][addr % 4] = val;
-  } else if (target == 18) {
-    /* user_patterns[addr / 8][addr % 8] = val; */
+    color_palette[addr / 3][addr % 3] = val;
   }
 }
 
@@ -191,25 +177,25 @@ void controlEvent(ControlEvent theEvent) {
 
   if (gui_initialized) {
     if (evt.startsWith("presetAccMode")) {
-      preset_editor.set(cur_preset_idx, 0, val);
+      preset_editor.setv(cur_preset_idx, 0, val);
     } else if (evt.startsWith("presetAccSens")) {
-      preset_editor.set(cur_preset_idx, 1, val);
+      preset_editor.setv(cur_preset_idx, 1, val);
     } else if (evt.startsWith("presetPattern1")) {
-      preset_editor.set(cur_preset_idx, 2, val);
+      preset_editor.setv(cur_preset_idx, 2, val);
     } else if (evt.startsWith("presetPattern2")) {
-      preset_editor.set(cur_preset_idx, 20, val);
+      preset_editor.setv(cur_preset_idx, 20, val);
     } else if (evt.startsWith("presetColor")) {
       preset_editor.select(val);
     } else if (evt.startsWith("presetLess1")) {
-      preset_editor.set(cur_preset_idx, 3, 99);
+      preset_editor.setv(cur_preset_idx, 3, 99);
     } else if (evt.startsWith("presetLess2")) {
-      preset_editor.set(cur_preset_idx, 21, 99);
+      preset_editor.setv(cur_preset_idx, 21, 99);
     } else if (evt.startsWith("presetMore1")) {
-      int v = preset_editor.set(cur_preset_idx, 3, 100);
-      sendCmd('R', cur_preset_idx, 3 + v, 0);
+      int v = preset_editor.setv(cur_preset_idx, 3, 100);
+      /* sendCmd('R', cur_preset_idx, 3 + v, 0); */
     } else if (evt.startsWith("presetMore2")) {
-      int v = preset_editor.set(cur_preset_idx, 21, 100);
-      sendCmd('R', cur_preset_idx, 21 + v, 0);
+      int v = preset_editor.setv(cur_preset_idx, 21, 100);
+      /* sendCmd('R', cur_preset_idx, 21 + v, 0); */
     } else if (evt.startsWith("presetReload")) {
       sendCmd('L', cur_preset_idx, 0, 0);
     } else if (evt.startsWith("presetWrite")) {
@@ -290,6 +276,10 @@ void controlEvent(ControlEvent theEvent) {
       guiui.save();
     } else if (evt.startsWith("guiLoad")) {
       guiui.load();
+    } else if (evt.startsWith("guiDisconnect")) {
+      sendCmd('X', 10, 99, 0);
+      initialized = false;
+      reading = true;
     } else if (evt.startsWith("guiExit")) {
       sendCmd('X', 10, 99, 0);
       exit();
