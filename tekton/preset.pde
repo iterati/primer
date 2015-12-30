@@ -1,9 +1,11 @@
+int NUM_PATTERNS = 62;
 String[] pattern_names = {
   "RIBBON",
   "HYPER",
   "STROBE",
   "NANO",
   "DOPS",
+  "SLOW_STROBE",
   "STROBIE",
   "FAINT",
   "SIGNAL",
@@ -19,17 +21,17 @@ String[] pattern_names = {
   "TRACER",
   "DASHDOPS",
   "DOPSDASH",
-  "STROBETRACER",
-  "HYPERTRACER",
+  "VEXING",
+  "VEXING3",
   "RIBBONTRACER",
   "DOTTED",
   "FIREWORK",
   "BOTTLEROCKET",
   "GROW",
   "SHRINK",
-  "SPRING",
+  "STRETCH",
   "WAVE",
-  "SHAPESHIFT",
+  "SHIFT",
   "COMET",
   "METEOR",
   "EMBERS",
@@ -47,6 +49,7 @@ String[] pattern_names = {
   "STROBEOUT",
   "PULSE",
   "PULSAR",
+  "SLOW_MORPH",
   "MORPH",
   "DOPMORPH",
   "STROBIEMORPH",
@@ -104,7 +107,7 @@ class PresetEditor {
 
     tlTitle = cp5.addTextlabel("presetTitle")
       .setText("Preset 1")
-      .setPosition(320, 20)
+      .setPosition(330, 20)
       .setColorValue(0xff8888ff)
       .setFont(createFont("Arial", 32))
       .setGroup(grp);
@@ -118,42 +121,42 @@ class PresetEditor {
       .hide();
 
     btnReload = cp5.addButton("presetReload")
-      .setPosition(110, 190)
+      .setPosition(210, 190)
       .setSize(80, 20)
       .setColorBackground(color(64))
       .setCaptionLabel("Reload Preset")
       .setGroup(grp);
 
     btnWrite = cp5.addButton("presetWrite")
-      .setPosition(210, 190)
+      .setPosition(310, 190)
       .setSize(80, 20)
       .setColorBackground(color(64))
       .setCaptionLabel("Write Preset")
       .setGroup(grp);
 
     btnPrev = cp5.addButton("presetPrev")
-      .setPosition(350, 190)
-      .setSize(40, 20)
+      .setPosition(250, 30)
+      .setSize(50, 20)
       .setColorBackground(color(64))
-      .setCaptionLabel("<<")
+      .setCaptionLabel("<< PREV")
       .setGroup(grp);
 
     btnNext = cp5.addButton("presetNext")
-      .setPosition(410, 190)
-      .setSize(40, 20)
+      .setPosition(500, 30)
+      .setSize(50, 20)
       .setColorBackground(color(64))
-      .setCaptionLabel(">>")
+      .setCaptionLabel("NEXT >>")
       .setGroup(grp);
 
     btnSave = cp5.addButton("presetSave")
-      .setPosition(640, 190)
+      .setPosition(560, 190)
       .setSize(30, 20)
       .setColorBackground(color(64))
       .setCaptionLabel("Save")
       .setGroup(grp);
 
     btnLoad = cp5.addButton("presetLoad")
-      .setPosition(680, 190)
+      .setPosition(600, 190)
       .setSize(30, 20)
       .setColorBackground(color(64))
       .setCaptionLabel("Load")
@@ -161,9 +164,9 @@ class PresetEditor {
 
     tfPath = cp5.addTextfield("presetPath")
       .setValue("")
-      .setPosition(490, 190)
+      .setPosition(410, 190)
       .setSize(140, 20)
-      .setColorBackground(color(64))
+      .setColorBackground(color(0))
       .setText("primer1.mode")
       .setCaptionLabel("")
       .setGroup(grp);
@@ -255,8 +258,8 @@ class PresetEditor {
     dd.setColorActive(color(255, 128));
     dd.setItemHeight(20);
     dd.setBarHeight(15);
-    for (int j = 0; j < 60; j++) {
-      dd.addItem("Pattern " + var + ": " + pattern_names[j], j);
+    for (int j = 0; j < NUM_PATTERNS; j++) {
+      dd.addItem((j + 1) + ": " + pattern_names[j], j);
     }
     dd.close();
     return dd;
@@ -307,6 +310,11 @@ class PresetEditor {
     }
     selected_v = v;
     selected_s = s;
+  }
+
+  void deselect() {
+    selected_v = selected_s = -1;
+    btnSelected.hide();
   }
 
   void guiChangeColor(int val) {
@@ -363,80 +371,84 @@ class PresetEditor {
       return presets[target].numColors[var];
     }
     presets[target].numColors[var] = val;
-    if (target == cur_preset_idx) {
-      if (val == 1) {
-        btnLess[var].hide();
-        btnMore[var].show();
-      } else if (val == 16) {
-        btnLess[var].show();
-        btnMore[var].hide();
-      } else {
-        btnLess[var].show();
-        btnMore[var].show();
-      }
-      for (int i = 0; i < 16; i++) {
-        if (i < val) {
-          btnColors[var][i].setCaptionLabel("");
-        } else {
-          btnColors[var][i].setCaptionLabel("off").setColorBackground(0);
-        }
-      }
-    }
+    refresh();
     return val;
   }
 
-  String compressMode(int target) {
-    char[] rtn = new char[69];
-    rtn[0] = encode((preset_editor.presets[target].accSens * 8) + preset_editor.presets[target].accMode);
-    for (int v = 0; v < 2; v++) {
-      rtn[(v * 34) + 1] = encode(preset_editor.presets[target].pattern[v]);
-      rtn[(v * 34) + 2] = encode(preset_editor.presets[target].numColors[v]);
-      for (int s = 0; s < 16; s++) {
-        rtn[(v * 34) + (s * 2) + 3] = encode((preset_editor.presets[target].colors[v][s] >> 6));
-        rtn[(v * 34) + (s * 2) + 4] = encode((preset_editor.presets[target].colors[v][s] % 64));
+  JSONArray asJson() {
+    JSONArray modes = new JSONArray();
+    for (int i = 0; i < 16; i++) {
+      modes.setJSONObject(i, modeAsJson(i));
+    }
+    return modes;
+  }
+
+  JSONObject modeAsJson(int i) {
+    JSONObject mode = new JSONObject();
+    mode.setInt("accel_mode", presets[i].accMode);
+    mode.setInt("accel_sensitivity", presets[i].accSens);
+    JSONArray variants = new JSONArray();
+    for (int j = 0; j < 2; j++) {
+      JSONObject variant = new JSONObject();
+      variant.setInt("pattern", presets[i].pattern[j]);
+      variant.setInt("num_colors", presets[i].numColors[j]);
+      JSONArray colors = new JSONArray();
+      for (int k = 0; k < 16; k++) {
+        colors.setInt(k, presets[i].colors[j][k]);
+      }
+      variant.setJSONArray("colors", colors);
+      variants.setJSONObject(j, variant);
+    }
+    mode.setJSONArray("variants", variants);
+    return mode;
+  }
+
+  void modeFromJson(JSONObject json, int i) {
+    setv(i, 0, json.getInt("accel_mode"));
+    setv(i, 1, json.getInt("accel_sensitivity"));
+    JSONArray variants = json.getJSONArray("variants");
+    for (int j = 0; j < 2; j++) {
+      JSONObject variant = variants.getJSONObject(j);
+      setv(i, (j * 18) + 2, variant.getInt("pattern"));
+      setv(i, (j * 18) + 3, variant.getInt("num_colors"));
+      JSONArray colors = variant.getJSONArray("colors");
+      for (int k = 0; k < 16; k++) {
+        setv(i, (j * 18) + k + 4, colors.getInt(k));
       }
     }
+  }
 
-    return new String(rtn);
+  void fromJson(JSONArray json) {
+    for (int i = 0; i < max(json.size(), 16); i++) {
+      modeFromJson(json.getJSONObject(i), i);
+    }
   }
 
   void save() {
-    String[] strs = new String[1];
-    strs[0] = compressMode(cur_preset_idx);
-    saveStrings(tfPath.getText(), strs);
-  }
-
-  void decompressMode(int target, String s) {
-    if (s.length() == 69) {
-      setv(target, 0, decode(s.charAt(0)) % 8);
-      setv(target, 1, decode(s.charAt(0)) / 8);
-      for (int v = 0; v < 2; v++) {
-        setv(target, (v * 18) + 2, decode(s.charAt((v * 34) + 1)));
-        setv(target, (v * 18) + 3, decode(s.charAt((v * 34) + 2)));
-        for (int c = 0; c < 16; c++) {
-          setv(target, (v * 18) + c + 4,
-              (decode(s.charAt((v * 34) + (2 * c) + 3)) << 6) +
-              decode(s.charAt((v * 34) + (2 * c) + 4)));
-        }
-      }
-    }
+    saveJSONObject(modeAsJson(cur_preset_idx), tfPath.getText());
   }
 
   void load() {
-    String[] strs = loadStrings(tfPath.getText());
-    decompressMode(cur_preset_idx, strs[0]);
+    modeFromJson(loadJSONObject(tfPath.getText()), cur_preset_idx);
   }
 
   void refresh() {
     tlTitle.setText("Preset " + (cur_preset_idx + 1));
     tfPath.setText("primer" + (cur_preset_idx + 1) + ".mode");
-    btnSelected.hide();
     ddlAccMode.setCaptionLabel(accel_mode_names[presets[cur_preset_idx].accMode]);
     ddlAccSens.setCaptionLabel(accel_sens_names[presets[cur_preset_idx].accSens]);
     for (int v = 0; v < 2; v++) {
       ddlPattern[v].setCaptionLabel("Pattern " + (v + 1) + ": " + pattern_names[presets[cur_preset_idx].pattern[v]]);
       for (int s = 0; s < 16; s++) {
-        btnColors[v][s].setColorBackground(getColor(presets[cur_preset_idx].colors[v][s]));
+        if (s < presets[cur_preset_idx].numColors[v]) {
+          btnColors[v][s].setColorBackground(getColor(presets[cur_preset_idx].colors[v][s]));
+          btnColors[v][s].setCaptionLabel((presets[cur_preset_idx].colors[v][s] % 64) +
+                                          "/" +
+                                          ((presets[cur_preset_idx].colors[v][s] >> 6) + 1));
+        } else {
+          btnColors[v][s].setColorBackground(color(0));
+          btnColors[v][s].setCaptionLabel("off").setColorBackground(0);
+        }
       }
       if (presets[cur_preset_idx].numColors[v] == 1) {
         btnLess[v].hide();

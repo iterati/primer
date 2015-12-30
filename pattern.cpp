@@ -64,7 +64,7 @@ void _tracer(uint8_t num_colors, uint8_t colors[],
   pick = (pick == 0) ? (num_colors - 1) : pick;
   skip = (skip == 0 || skip > pick) ? pick : skip;
 
-  if (pad == 0) {
+  if (pad == 1) {
     oT = ((cst + cbt) * pick) + cbt;
     if (repeat == 0) {
       tT = tbt + tst;
@@ -115,7 +115,7 @@ void _tracer(uint8_t num_colors, uint8_t colors[],
       if (t % (tbt + tst) < tst) {
         c = 0;
       } else {
-        _r = _g = _b = 0;
+        c = -1;
       }
     }
   }
@@ -125,16 +125,16 @@ void _tracer(uint8_t num_colors, uint8_t colors[],
   } else if (c == 0) {
     unpackColor(colors[0], _r, _g, _b);
   } else {
-    if (pick == skip) {
-      if (c > num_colors) {
+    if ((c - 1) >= (num_colors - 1)) {
+      if (pick == skip) {
         _r = _g = _b = 0;
       } else {
-        unpackColor(colors[c], _r, _g, _b);
+        unpackColor(colors[((c - 1) % (num_colors - 1)) + 1], _r, _g, _b);
       }
     } else {
-      unpackColor(colors[(c % (num_colors - 1)) + 1], _r, _g, _b);
+      unpackColor(colors[c], _r, _g, _b);
     }
-  }
+    }
   }
 }
 
@@ -424,6 +424,9 @@ void renderPattern(
     case P_DOPS:
       _strobe(num_colors, colors, tick, cur_color, cntr, 3, 22, 0, 0, 0, 0, doit);
       break;
+    case P_SLOW_STROBE:
+      _strobe(num_colors, colors, tick, cur_color, cntr, 20, 30, 0, 0, 0, 0, doit);
+      break;
     case P_STROBIE:
       _strobe(num_colors, colors, tick, cur_color, cntr, 5, 45, 0, 0, 0, 0, doit);
       break;
@@ -443,13 +446,13 @@ void renderPattern(
       _strobe(num_colors, colors, tick, cur_color, cntr, 5, 10, 140, 0, 0, 0, doit);
       break;
     case P_STROBE2:
-      _strobe(num_colors, colors, tick, cur_color, cntr, 9, 16, 0, 8, 2, 1, doit);
+      _strobe(num_colors, colors, tick, cur_color, cntr, 9, 16, 0, 32, 2, 1, doit);
       break;
     case P_HYPER3:
-      _strobe(num_colors, colors, tick, cur_color, cntr, 25, 25, 0, 8, 3, 1, doit);
+      _strobe(num_colors, colors, tick, cur_color, cntr, 50, 50, 0, 16, 3, 1, doit);
       break;
     case P_DOPS3:
-      _strobe(num_colors, colors, tick, cur_color, cntr, 3, 22, 0, 8, 3, 1, doit);
+      _strobe(num_colors, colors, tick, cur_color, cntr, 3, 22, 0, 64, 3, 1, doit);
       break;
     case P_BLASTER3:
       _strobe(num_colors, colors, tick, cur_color, cntr, 5, 0, 140, 0, 3, 3, doit);
@@ -469,17 +472,17 @@ void renderPattern(
     case P_DOPSDASH:
       _tracer(num_colors, colors, tick, cur_color, cntr, 3, 22, 50, 0, 1, 0, 0, 0, doit);
       break;
-    case P_STROBETRACER:
-      _tracer(num_colors, colors, tick, cur_color, cntr, 9, 16, 9, 0, 0, 1, 0, 0, doit);
+    case P_VEXING:
+      _tracer(num_colors, colors, tick, cur_color, cntr, 5, 45, 3, 22, 5, 1, 1, 0, doit);
       break;
-    case P_HYPERTRACER:
-      _tracer(num_colors, colors, tick, cur_color, cntr, 25, 25, 25, 0, 0, 1, 0, 0, doit);
+    case P_VEXING3:
+      _tracer(num_colors, colors, tick, cur_color, cntr, 5, 45, 3, 22, 5, 3, 1, 0, doit);
       break;
     case P_RIBBONTRACER:
       _tracer(num_colors, colors, tick, cur_color, cntr, 10, 0, 30, 30, 1, 3, 1, 1, doit);
       break;
     case P_DOTTED:
-      _tracer(num_colors, colors, tick, cur_color, cntr, 8, 12, 43, 0, 0, 3, 1, 0, doit);
+      _tracer(num_colors, colors, tick, cur_color, cntr, 8, 12, 45, 0, 0, 3, 1, 0, doit);
       break;
     case P_FIREWORK:
       _tracer(num_colors, colors, tick, cur_color, cntr, 5, 30, 40, 60, 0, 3, 1, 0, doit);
@@ -488,31 +491,31 @@ void renderPattern(
       _tracer(num_colors, colors, tick, cur_color, cntr, 5, 45, 15, 45, 0, 2, 1, 0, doit);
       break;
     case P_GROW:
-      _flux(num_colors, colors, tick, cur_color, cntr, 3, 0, 0, 0, 2, 1, 1, 16, doit);
-      break;
-    case P_SHRINK:
       _flux(num_colors, colors, tick, cur_color, cntr, 3, 0, 0, 1, 2, 1, 1, 16, doit);
       break;
-    case P_SPRING:
+    case P_SHRINK:
+      _flux(num_colors, colors, tick, cur_color, cntr, 3, 0, 0, 0, 2, 1, 1, 16, doit);
+      break;
+    case P_STRETCH:
       _flux(num_colors, colors, tick, cur_color, cntr, 3, 0, 0, 2, 2, 1, 1, 16, doit);
       break;
     case P_WAVE:
-      _flux(num_colors, colors, tick, cur_color, cntr, 5, 2, 0, 2, 1, 0, 0, 64, doit);
+      _flux(num_colors, colors, tick, cur_color, cntr, 5, 2, 0, 2, 1, 0, 0, 32, doit);
       break;
-    case P_SHAPESHIFT:
+    case P_SHIFT:
       _flux(num_colors, colors, tick, cur_color, cntr, 5, 0, 80, 2, 2, 0, 1, 8, doit);
       break;
     case P_COMET:
-      _flux(num_colors, colors, tick, cur_color, cntr, 3, 30, 60, 0, 0, 1, 1, 32, doit);
+      _flux(num_colors, colors, tick, cur_color, cntr, 3, 30, 0, 0, 0, 1, 1, 32, doit);
       break;
     case P_METEOR:
-      _flux(num_colors, colors, tick, cur_color, cntr, 3, 30, 60, 1, 0, 1, 1, 32, doit);
+      _flux(num_colors, colors, tick, cur_color, cntr, 3, 30, 0, 1, 0, 1, 1, 32, doit);
       break;
     case P_EMBERS:
-      _flux(num_colors, colors, tick, cur_color, cntr, 3, 30, 90, 2, 0, 1, 1, 32, doit);
+      _flux(num_colors, colors, tick, cur_color, cntr, 3, 30, 0, 2, 0, 1, 1, 32, doit);
       break;
     case P_INFLUX:
-      _flux(num_colors, colors, tick, cur_color, cntr, 5, 20, 0, 2, 2, 0, 1, 4, doit);
+      _flux(num_colors, colors, tick, cur_color, cntr, 5, 20, 0, 2, 2, 0, 1, 8, doit);
       break;
     case P_SWORD:
       _edge(num_colors, colors, tick, cur_color, cntr, 8, 0, 16, 40, 0, doit);
@@ -553,41 +556,44 @@ void renderPattern(
     case P_PULSAR:
       _fade(num_colors, colors, tick, cur_color, cntr, 25, 25, 50, 150, 2, 4, doit);
       break;
+    case P_SLOWMORPH:
+      _fade(num_colors, colors, tick, cur_color, cntr, 250, 0, 0, 0, 3, 8, doit);
+      break;
     case P_MORPH:
       _fade(num_colors, colors, tick, cur_color, cntr, 250, 0, 0, 0, 3, 1, doit);
       break;
     case P_DOPMORPH:
-      _fade(num_colors, colors, tick, cur_color, cntr, 3, 22, 0, 0, 3, 8, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 3, 22, 3, 22, 3, 3, doit);
       break;
     case P_STROBIEMORPH:
-      _fade(num_colors, colors, tick, cur_color, cntr, 5, 45, 0, 0, 3, 8, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 5, 45, 5, 45, 3, 3, doit);
       break;
     case P_STROBEMORPH:
-      _fade(num_colors, colors, tick, cur_color, cntr, 9, 16, 0, 0, 3, 8, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 9, 16, 9, 16, 3, 3, doit);
       break;
     case P_HYPERMORPH:
-      _fade(num_colors, colors, tick, cur_color, cntr, 50, 50, 0, 0, 3, 4, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 50, 50, 50, 50, 3, 3, doit);
       break;
     case P_DASHMORPH:
-      _fade(num_colors, colors, tick, cur_color, cntr, 5, 45, 50, 45, 3, 4, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 5, 45, 50, 45, 3, 3, doit);
       break;
     case P_FUSE:
       _fade(num_colors, colors, tick, cur_color, cntr, 250, 0, 0, 0, 4, 1, doit);
       break;
     case P_DOPFUSE:
-      _fade(num_colors, colors, tick, cur_color, cntr, 3, 22, 0, 0, 4, 4, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 3, 22, 3, 22, 4, 3, doit);
       break;
     case P_STROBIEFUSE:
       _fade(num_colors, colors, tick, cur_color, cntr, 5, 45, 5, 45, 4, 3, doit);
       break;
     case P_STROBEFUSE:
-      _fade(num_colors, colors, tick, cur_color, cntr, 9, 16, 0, 0, 4, 4, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 9, 16, 9, 16, 4, 3, doit);
       break;
     case P_HYPERFUSE:
-      _fade(num_colors, colors, tick, cur_color, cntr, 50, 50, 0, 0, 4, 4, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 50, 50, 50, 50, 4, 3, doit);
       break;
     case P_DASHFUSE:
-      _fade(num_colors, colors, tick, cur_color, cntr, 5, 45, 50, 45, 4, 4, doit);
+      _fade(num_colors, colors, tick, cur_color, cntr, 5, 45, 50, 45, 4, 3, doit);
       break;
 
     default:

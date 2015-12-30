@@ -1,6 +1,6 @@
-# Primer
+# Primer and Tekton
 
-Primer is a fully customizable firmware for the Open Source Microlight OSMxyz. It comes with a GUI called Tekton.
+Primer is a Work In Progress firmware for the OSM Microlight ans Tekton is a GUI for configuring the light in real time.
 
 * Primer requires Arduino 1.6.4 or higher
 * Tekton requires Processing 3.0.1 or higher
@@ -8,14 +8,14 @@ Primer is a fully customizable firmware for the Open Source Microlight OSMxyz. I
 
 ## Features
 
-* 48 selectable strobe animation patterns
-* 16 preset slots with 2 variations per slot
-* 16 color slots per variation
-* 31 color + blank customizable palette with 4 shading levels per color
-* 4 accelerometer triggering actions with 3 sensitivity levels for pattern and color changes without button pressing
-* 4 fully custimizable preset playlists with 16 slots each
-* Tap-to-set BPM trigger for auto cycling through playlist
+* 62 patterns to chose from
+* 47 customizable (with Tekton) color palette (plus a blank) with 4 shading levels per color
+* Each pattern supports up to 16 colors each
+* 4 accelerometer triggers with 3 sensitivity settings
+* 16 mode slots with 2 variations (pattern + colors) per slot
+* 4 fully custimizable mode playlists (bundles) with 16 slots each
 * Toggle Conjuring Mode (single-press on/off) for any preset
-* Easy to use on-chip customization
 * Easy to use GUI customization
+* Easy to use on-chip customization
 * Save, load, and share your custom palettes, modes, and preset playlists
+* Upload yours or your friends' patterns to your lights or download your at-show customizations when you get home

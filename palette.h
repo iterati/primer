@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
-#define NUM_COLORS 32
+#define NUM_COLORS 48
 
 extern uint8_t color_palette[NUM_COLORS][3];
 

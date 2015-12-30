@@ -5,13 +5,12 @@
 #include <avr/wdt.h>
 #include "LowPower.h"
 #include "elapsedMillis.h"
-#include "MMA7660.h"
 #include "palette.h"
 #include "pattern.h"
 
-#define EEPROM_VERSION          139
+#define EEPROM_VERSION          202
 
-#define THRESH_BINS             8
+#define ACCEL_BINS              16
 #define NUM_MODES               16
 #define NUM_BUNDLES             4
 
@@ -23,9 +22,10 @@
 #define MMA7660_ADDRESS         0x4C
 #define MMA8652_ADDRESS         0x1D
 
-#define ADDR_MODES              0
-#define ADDR_BUNDLES            640
-#define ADDR_PALETTE            740
+#define ADDR_MODES              0    // 640
+#define ADDR_BUNDLES            640  // 68
+#define ADDR_PALETTE            740  // 144
+
 #define ADDR_VERSION            1020
 #define ADDR_CUR_BUNDLE         1021
 #define ADDR_LOCKED             1022
@@ -108,6 +108,8 @@
 #define ASENS_MEDIUM            1
 #define ASENS_HIGH              2
 
+#define V1_ACCEL_ADDR 0x4C
+#define V2_ACCEL_ADDR 0x1D
 
 elapsedMicros limiter = 0;
 uint8_t led_r, led_g, led_b;
@@ -117,26 +119,30 @@ bool conjure_toggle = false;
 uint8_t gui_color, gui_shade, edit_color;
 uint8_t button_state, new_state, config_state;
 uint64_t since_trans = 0;
-MMA7660 v1accel;
-/* MMA8652 v2accel; */
+
 uint8_t accel_model;
+uint8_t accel_addr;
 uint8_t accel_counts;
 uint8_t accel_count_wrap;
 uint8_t accel_tick = 0;
-uint8_t accel_high;
 int16_t xg, yg, zg;
-int16_t lxg = 0; 
+int16_t lxg = 0;
 int16_t lyg = 0;
 int16_t lzg = 0;
-float fxg, fyg, fzg, mag_g, tiltx, tilty;
+float fxg, fyg, fzg;
+float a_mag, a_pitch, a_roll;
+uint8_t a_speed;
 
-uint8_t thresh_last[THRESH_BINS];
-uint8_t thresh_cnts[THRESH_BINS];
-const uint16_t thresh_test[2][THRESH_BINS] = {
-  {24, 28, 32, 36, 40, 44, 48, 51},
-  {19, 16, 13, 10, 8, 6, 4, 2},
+float thresh_bins_p[2][ACCEL_BINS] = {
+  {1.1, 1.195, 1.29, 1.385, 1.48, 1.575, 1.67, 1.765, 1.86, 1.955, 2.05, 2.145, 2.24, 2.335, 2.43, 2.525},
+  {1.1, 1.255, 1.41, 1.565, 1.72, 1.875, 2.03, 2.185, 2.34, 2.495, 2.65, 2.805, 2.96, 3.115, 3.27, 3.425},
 };
-const uint8_t timing_thresh[3] = {30, 18, 6};
+float thresh_bins_n[ACCEL_BINS] = {0.845, 0.79, 0.735, 0.68, 0.625, 0.57, 0.515, 0.46, 0.405, 0.35, 0.295, 0.24, 0.185, 0.13, 0.075, 0.02};
+uint8_t thresh_last[ACCEL_BINS];
+uint8_t thresh_cnts[ACCEL_BINS];
+uint8_t thresh_timings[3] = {30, 18, 6};
+uint8_t thresh_falloff;
+uint8_t thresh_target;
 
 uint8_t cur_mode_idx = 0;
 uint8_t cur_bundle = 0;
@@ -163,71 +169,74 @@ Mode* mode;
 
 const PROGMEM uint8_t factory_modes[NUM_MODES][38] = {
   {AMODE_SPEED, ASENS_HIGH,
-    P_BLASTER, 7, 0x01, 0xC7, 0xC6, 0xC5, 0xC4, 0xC3, 0xC2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    P_STROBIEFUSE, 3, 0x48, 0x50, 0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    P_HYPER3, 6, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_DOPS3, 6, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
+  {AMODE_SPEED, ASENS_MEDIUM,
+    P_BLASTER, 7, 0x01, 0x87, 0x86, 0x85, 0x84, 0x83, 0x82, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_STROBIEFUSE, 3, 0x48, 0x50, 0x58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_SPEED, ASENS_LOW,
+    P_STROBIE, 2, 0xce, 0x1a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_VEXING, 2, 0xce, 0x1a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_SPEED, ASENS_LOW,
+    P_DASHDOPS, 7, 0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_DOPSDASH, 7, 0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+
   {AMODE_OFF, ASENS_LOW,
-    P_RAZOR5, 10, 0x18, 0x98, 0x9c, 0xc8, 0xc8,  0x18, 0x98, 0x94, 0xd0, 0xd0,  0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_FLIPZ, ASENS_HIGH,
-    P_STROBIE, 2, 0x1a, 0xce, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBIE, 2, 0xda, 0x0e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_RIBBON, 6, 0x08, 0x0c, 0x10, 0x14, 0x18, 0x1c, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_BOTTLEROCKET, 11, 0xc1, 0x0a, 0x1c, 0x08, 0x1a, 0x1e, 0x18, 0x1c, 0x16, 0x1a, 0x14, 0x18, 0x12, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_RAZOR5, 15, 0x08, 0x0a, 0x0c, 0x08, 0x10,  0x18, 0x1a, 0x1c, 0x18, 0x08,  0x10, 0x12, 0x14, 0x10, 0x18,  0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_BLASTER3, 9, 0x01, 0xc8, 0xc8, 0x01, 0xd0, 0xd0, 0x01, 0xd8, 0xd8, 0, 0, 0, 0, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_WAVE, 4, 0x18, 0x14, 0x16, 0x12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   {AMODE_OFF, ASENS_LOW,
+    P_STRETCH, 3, 0x1e, 0x1a, 0x15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+
+  {AMODE_OFF, ASENS_LOW,
+    P_DASHMORPH, 3, 0x21, 0x22, 0x23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_PULSAR, 3, 0x1f, 0x1c, 0x19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_DOTTED, 13, 0xc1, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
   {AMODE_OFF, ASENS_LOW,
+    P_BOTTLEROCKET, 7, 0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+
+  {AMODE_OFF, ASENS_LOW,
+    P_BLASTER3, 6, 0x1f, 0xd4, 0xd4, 0x14, 0xdf, 0xdf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_OFF, ASENS_LOW,
+    P_BLASTER3, 6, 0x26, 0xec, 0xec, 0x2c, 0xe6, 0xe6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_OFF, ASENS_LOW,
+    P_INFLUX, 3, 0x21, 0x24, 0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_OFF, ASENS_LOW,
+    P_GROW, 6, 0x28, 0, 0x2b, 0, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
 };
-const PROGMEM uint8_t factory_bundle_slots[NUM_BUNDLES] = {4, 4, 4, 4};
+const PROGMEM uint8_t factory_bundle_slots[NUM_BUNDLES] = {16, 4, 4, 4};
 const PROGMEM uint8_t factory_bundles[NUM_BUNDLES][NUM_MODES] = {
   {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
   {4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -237,18 +246,14 @@ const PROGMEM uint8_t factory_bundles[NUM_BUNDLES][NUM_MODES] = {
 
 
 void setup() {
+  Wire.begin();
   Serial.begin(57600);
 
   button_state = new_state = S_PLAY_OFF;
 
-  pinMode(PIN_R, OUTPUT);
-  pinMode(PIN_G, OUTPUT);
-  pinMode(PIN_B, OUTPUT);
   pinMode(PIN_BUTTON, INPUT);
-  pinMode(PIN_LDO, OUTPUT);
 
   attachInterrupt(0, pushInterrupt, FALLING);
-  cur_bundle = EEPROM.read(ADDR_CUR_BUNDLE);
 
   if (EEPROM.read(ADDR_SLEEPING)) {
     EEPROM.update(ADDR_SLEEPING, 0);
@@ -257,22 +262,25 @@ void setup() {
   }
   detachInterrupt(0);
 
-  /*
   if (EEPROM_VERSION != EEPROM.read(ADDR_VERSION)) {
     resetMemory();
+    EEPROM.update(ADDR_VERSION, EEPROM_VERSION);
   } else {
     loadModes();
     loadBundles();
     loadPalette(ADDR_PALETTE);
   }
-  */
 
-  initModes();
-  initBundles();
-  initPalette();
+  cur_bundle = EEPROM.read(ADDR_CUR_BUNDLE);
 
+  pinMode(PIN_R, OUTPUT);
+  pinMode(PIN_G, OUTPUT);
+  pinMode(PIN_B, OUTPUT);
+  pinMode(PIN_LDO, OUTPUT);
   digitalWrite(PIN_LDO, HIGH);
-  accelSetup();
+
+  detectAccelModel();
+  accelInit();
 
   noInterrupts();
   ADCSRA = 0; // Disable ADC
@@ -285,29 +293,6 @@ void setup() {
   changeMode(0);
   Serial.write(100); Serial.write(cur_mode_idx); Serial.write(0);
   limiter = 0;
-}
-
-void accelSetup() {
-  accel_model = 0;
-  accel_counts = (accel_model == 0) ? 17 : 20;
-  accel_count_wrap = (accel_model == 0) ? 50 : 20;
-  accelInit();
-}
-
-void accelInit() {
-  if (accel_model == 0) {
-    v1accel.init();
-  } else {
-    // v2accel.init();
-  }
-}
-
-void accelStandby() {
-  if (accel_model == 0) {
-    v1accel.standby();
-  } else {
-    /* v2accel.standby(); */
-  }
 }
 
 void loop() {
@@ -345,8 +330,8 @@ void handleRender() {
   } else if (button_state == 10) {
     if (config_state == 0) {        led_r = 192; led_g =   0; led_b =   0;
     } else if (config_state == 1) { led_r =   0; led_g =   0; led_b = 192;
-    } else if (config_state == 2) { led_r = 128; led_g = 128; led_b =   0;
-    } else if (config_state == 3) { led_r = 128; led_g =   0; led_b = 128;
+    } else if (config_state == 2) { led_r = 128; led_g =   0; led_b = 128;
+    } else if (config_state == 3) { led_r =   0; led_g = 128; led_b = 128;
     } else {                        led_r =   0; led_g = 192; led_b =   0;
     }
   } else if (button_state >= 20 && button_state < 30) {
@@ -384,7 +369,7 @@ void handleRender() {
   }
 
   if (conjure && conjure_toggle) {
-    if (since_trans > 64000 * 60 * 30) {
+    if (since_trans > 2000 * 180) {
       enterSleep();
     }
     led_r = led_g = led_b = 0;
@@ -408,137 +393,6 @@ void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
     }
   }
   since_trans += flashes * 100;
-}
-
-void readAccel() {
-  if (accel_model == 0) {
-    v1accel.readXYZ(&xg, &yg, &zg);
-  } else {
-    /* v2accel.readXYZ(&xg, &yg, &zg); */
-  }
-}
-
-void translateAccel() {
-  if (accel_model == 0) {
-    xg = (xg < 64) ? ((xg < 32) ? xg : -64 + xg) : lxg;
-    yg = (yg < 64) ? ((yg < 32) ? yg : -64 + yg) : lyg;
-    zg = (zg < 64) ? ((zg < 32) ? zg : -64 + zg) : lzg;
-  } else {
-    xg = (xg < 2048) ? xg : -4096 + xg;
-    yg = (yg < 2048) ? yg : -4096 + yg;
-    zg = (zg < 2048) ? zg : -4096 + zg;
-  }
-  lxg = xg; lyg = yg; lzg = zg;
-}
-
-void normalizeAccel() {
-  if (accel_model == 0) {
-    fxg = xg / 21.0;
-    fyg = yg / 21.0;
-    fzg = zg / 21.0;
-  } else {
-    fxg = xg / 1024.0;
-    fyg = yg / 1024.0;
-    fzg = zg / 1024.0;
-  }
-}
-
-void updateBins() {
-  for (uint8_t i = 0; i < THRESH_BINS; i++) {
-    if (mag_g > thresh_test[0][i] || mag_g < thresh_test[1][i]) {
-      thresh_last[i] = 0;
-      thresh_cnts[i] = constrain(thresh_cnts[i] + 1, 0, 200);
-    }
-    thresh_last[i]++;
-    if (thresh_last[i] > 12) {
-      thresh_cnts[i] = 0;
-    }
-  }
-}
-
-void checkBins() {
-  accel_high = 0;
-  for (uint8_t i = 0; i < THRESH_BINS; i++) {
-    if (thresh_cnts[i] > 6) {
-      accel_high = i + 1;
-    }
-  }
-}
-
-void handleAccel() {
-  switch (accel_tick % accel_counts) {
-    case 0:
-      readAccel();
-      break;
-    case 1:
-      translateAccel();
-      normalizeAccel();
-      break;
-    case 2:
-      mag_g = sqrt((xg * xg) + (yg * yg) + (zg * zg));
-      updateBins();
-      checkBins();
-      break;
-    case 3:
-      tiltx = sqrt((fyg * fyg) + (fzg * fzg));
-      break;
-    case 4:
-      tiltx = atan2(-fxg, tiltx);
-      break;
-    case 5:
-      tiltx = (tiltx * 180) / M_PI;
-      break;
-    case 6:
-      tilty = atan2(-fyg, fzg);
-      break;
-    case 7:
-      tilty = (tilty * 180.0) / M_PI;
-      break;
-    case 8:
-      if (mode->accel_mode == AMODE_OFF) {
-        // noop
-      } else if (mode->accel_mode == AMODE_SPEED) {
-        if (mode->accel_sens == ASENS_LOW) {
-          if (cur_variant == 0 && accel_high > 7) cur_variant = 1;
-          if (cur_variant == 1 && accel_high < 5) cur_variant = 0;
-        } else if (mode->accel_sens == ASENS_MEDIUM) {
-          if (cur_variant == 0 && accel_high > 4) cur_variant = 1;
-          if (cur_variant == 1 && accel_high < 2) cur_variant = 0;
-        } else {
-          if (cur_variant == 0 && accel_high > 2) cur_variant = 1;
-          if (cur_variant == 1 && accel_high <= 1) cur_variant = 0;
-        }
-      } else {
-        if (cur_variant == 0 && accel_high < 2) {
-          if (mode->accel_mode == AMODE_TILTX) {
-            accel_counter += (tiltx < -75) ? 1 : -accel_counter;
-          } else if (mode->accel_mode == AMODE_TILTY) {
-            accel_counter += (tilty < -80 && tilty > -100) ? 1 : -accel_counter;
-          } else {
-            accel_counter += (fzg < -0.9 && fzg > -1.1) ? 1 : -accel_counter;
-          }
-        } else if (cur_variant == 1 && accel_high < 2) {
-          if (mode->accel_mode == AMODE_TILTX) {
-            accel_counter += (tiltx > 75) ? 1 : -accel_counter;
-          } else if (mode->accel_mode == AMODE_TILTY) {
-            accel_counter += (tilty > 80 && tilty < 100) ? 1 : -accel_counter;
-          } else {
-            accel_counter += (fzg > 0.9 && fzg < 1.1) ? 1 : -accel_counter;
-          }
-        }
-        if (accel_counter > timing_thresh[mode->accel_sens]) {
-          cur_variant = !cur_variant;
-          mode->accel_sens = 0;
-        }
-      }
-      break;
-
-    default:  // Can have no higher than case 15
-      break;
-  }
-
-  accel_tick++;
-  if (accel_tick >= accel_count_wrap) accel_tick = 0;
 }
 
 
@@ -963,12 +817,11 @@ void handlePress(bool pressed) {
 void enterSleep() {
   writeFrame(0, 0, 0);
   EEPROM.update(ADDR_SLEEPING, 1);
-  accelStandby();
   digitalWrite(PIN_LDO, LOW);
 
-  delay(4000);
+  delay(6400);
   wdt_enable(WDTO_15MS);
-  delay(128000);
+  delay(64000);
 }
 
 void pushInterrupt() {}
@@ -1025,7 +878,7 @@ void saveBundles() {
   for (uint8_t b = 0; b < NUM_BUNDLES; b++) {
     EEPROM.update(ADDR_BUNDLES + (b * 20), bundle_slots[b]);
     for (uint8_t s = 0; s < NUM_MODES; s++) {
-      EEPROM.update(ADDR_BUNDLES + (b * 20) + s, bundles[b][s]);
+      EEPROM.update(ADDR_BUNDLES + (b * 20) + s + 1, bundles[b][s]);
     }
   }
 }
@@ -1057,13 +910,13 @@ void loadBundles() {
 }
 
 void resetMemory() {
-  /* clearMemory(); */
+  clearMemory();
   initModes();
-  /* saveModes(); */
+  saveModes();
   initBundles();
-  /* saveBundles(); */
+  saveBundles();
   initPalette();
-  /* savePalette(ADDR_PALETTE); */
+  savePalette(ADDR_PALETTE);
 }
 
 void loadMemory() {
@@ -1227,6 +1080,9 @@ void cmdSave(uint8_t target) {
     saveBundles();
     savePalette(ADDR_PALETTE);
   }
+  flash(128, 128, 128, 4);
+  flash(128, 0, 0, 4);
+  flash(128, 128, 128, 4);
 }
 
 void cmdExecute(uint8_t action, uint8_t arg0, uint8_t arg1) {
@@ -1253,7 +1109,7 @@ void cmdExecute(uint8_t action, uint8_t arg0, uint8_t arg1) {
 
 void handleSerial() {
   uint8_t in0, in1, in2, in3;
-  if (Serial.available() >= 4) {
+  while (Serial.available() >= 4) {
     in0 = Serial.read();
     in1 = Serial.read();
     in2 = Serial.read();
@@ -1272,5 +1128,196 @@ void handleSerial() {
     } else if (in0 == 'X') {
       cmdExecute(in1, in2, in3);
     }
+  }
+}
+
+
+void handleAccel() {
+  switch (accel_tick % accel_counts) {
+    case 0:   // Get raw accel values
+      accelReadXYZ();
+      break;
+    case 1:   // Normalize to Gs
+      accelNormalize();
+      break;
+    case 2:   // Calculate the magnitude of all acceleration axes
+      a_mag = sqrt((fxg * fxg) + (fyg * fyg) + (fzg * fzg));
+      break;
+    case 3:   // Track the acceleration by bins
+      accelUpdateBins();
+      break;
+    case 4:   // Calculate vector of Y and Z axes for pitch calculation
+      a_pitch = sqrt((fyg * fyg) + (fzg * fzg));
+      break;
+    case 5:   // Calculate pitch in radians
+      a_pitch = atan2(-fxg, a_pitch);
+      break;
+    case 6:   // Convert pitch to degrees
+      a_pitch = (a_pitch * 180) / M_PI;
+      break;
+    case 7:   // Calculate roll in radians
+      a_roll = atan2(-fyg, fzg);
+      break;
+    case 8:   // Convert roll to degrees
+      a_roll = (a_roll * 180.0) / M_PI;
+      break;
+    case 9:
+      if (mode->accel_mode == AMODE_OFF) {
+        // noop
+      } else if (mode->accel_mode == AMODE_SPEED) {
+        if (mode->accel_sens == ASENS_LOW) {
+          if (cur_variant == 0 && a_speed > 15) cur_variant = 1;
+          if (cur_variant == 1 && a_speed < 11) cur_variant = 0;
+        } else if (mode->accel_sens == ASENS_MEDIUM) {
+          if (cur_variant == 0 && a_speed > 8) cur_variant = 1;
+          if (cur_variant == 1 && a_speed < 4) cur_variant = 0;
+        } else {
+          if (cur_variant == 0 && a_speed > 4) cur_variant = 1;
+          if (cur_variant == 1 && a_speed < 3) cur_variant = 0;
+        }
+      } else {
+        if (cur_variant == 0 && a_speed < 3) {
+          if (mode->accel_mode == AMODE_TILTX) {
+            accel_counter += (a_pitch < -75) ? 1 : -accel_counter;
+          } else if (mode->accel_mode == AMODE_TILTY) {
+            accel_counter += (a_roll < -80 && a_roll > -100) ? 1 : -accel_counter;
+          } else {
+            accel_counter += (fzg < -0.9 && fzg > -1.1) ? 1 : -accel_counter;
+          }
+        } else if (cur_variant == 1 && a_speed < 3) {
+          if (mode->accel_mode == AMODE_TILTX) {
+            accel_counter += (a_pitch > 75) ? 1 : -accel_counter;
+          } else if (mode->accel_mode == AMODE_TILTY) {
+            accel_counter += (a_roll > 80 && a_roll < 100) ? 1 : -accel_counter;
+          } else {
+            accel_counter += (fzg > 0.9 && fzg < 1.1) ? 1 : -accel_counter;
+          }
+        }
+        if (accel_counter > thresh_timings[mode->accel_sens]) {
+          cur_variant = !cur_variant;
+          mode->accel_sens = 0;
+        }
+      }
+      break;
+
+    // Can have no higher than case 15
+    default:
+      break;
+  }
+
+  accel_tick++;
+  if (accel_tick >= accel_count_wrap) accel_tick = 0;
+}
+
+void accelSend(uint8_t addr, uint8_t data) {
+  Wire.beginTransmission(accel_addr);
+  Wire.write(addr);
+  Wire.write(data);
+  Wire.endTransmission();
+}
+
+void accelInit() {
+  if (accel_model == 0) {
+    accelSend(0x07, 0x00);        // Standby to accept new settings
+    accelSend(0x08, 0x00);        // Set 120 samples/sec (every 16 2/3 frames)
+    accelSend(0x07, 0x01);        // Active mode
+  } else {
+    accelSend(0x2A, 0x00);        // Standby to accept new settings
+    accelSend(0x0E, 0x00);        // Set +-2g range
+    accelSend(0x2A, 0b00011001);  // Set 100 samples/sec (every 20 frames) and active
+  }
+}
+
+void accelReadXYZ() {
+  Wire.beginTransmission(accel_addr);
+
+  // v1 is a 6 bit value from 
+  if (accel_model == 0) {
+    Wire.write(0x00);
+    Wire.endTransmission(false);
+    Wire.requestFrom((int)accel_addr, 3);
+
+    while (!Wire.available());
+    xg = Wire.read();
+    xg = (xg >= 32) ? -64 + xg : xg;
+    while (!Wire.available());
+    yg = Wire.read();
+    yg = (yg >= 32) ? -64 + yg : yg;
+    while (!Wire.available());
+    zg = Wire.read();
+    zg = (zg >= 32) ? -64 + zg : zg;
+  } else {
+    Wire.write(0x01);
+    Wire.endTransmission(false);
+    Wire.requestFrom((int)accel_addr, 6);
+
+    while (!Wire.available());
+    xg = Wire.read() << 4;
+    while (!Wire.available());
+    xg |= Wire.read() >> 4;
+    xg = (xg >= 2048) ? -4096 + xg : xg;
+    while (!Wire.available());
+    yg = Wire.read() << 4;
+    while (!Wire.available());
+    yg |= Wire.read() >> 4;
+    yg = (yg >= 2048) ? -4096 + yg : yg;
+    while (!Wire.available());
+    zg = Wire.read() << 4;
+    while (!Wire.available());
+    zg |= Wire.read() >> 4;
+    zg = (zg >= 2048) ? -4096 + zg : zg;
+  }
+}
+
+void accelNormalize() {
+  // Normalize accel values to gs
+  float pg = (accel_model == 0) ? 21.0 : 1024.0;
+  fxg = xg / pg; fyg = yg / pg; fzg = zg / pg;
+}
+
+void accelUpdateBins() {
+  // Tracks the magnitude of acceleration
+  // v1 max is ~ 2.55 - 2.64
+  // v2 max is - 3.46
+  a_speed = 0;
+  for (uint8_t i = 0; i < ACCEL_BINS; i++) {
+    if (a_mag > thresh_bins_p[accel_model][i] || a_mag < thresh_bins_n[i]) {
+      thresh_last[i] = 0;
+      thresh_cnts[i] = constrain(thresh_cnts[i] + 1, 0, 200);
+    }
+    thresh_last[i]++;
+    if (thresh_last[i] >= thresh_falloff) thresh_cnts[i] = 0;
+    if (thresh_cnts[i] > thresh_target) a_speed = i + 1;
+  }
+}
+
+void detectAccelModel() {
+  // Try to talk to the v2 sensor to get it's id
+  Wire.beginTransmission(V2_ACCEL_ADDR);
+  Wire.write(0x0d);
+  Wire.endTransmission(false);
+
+  // Read in the ID value if it's there
+  Wire.requestFrom(V2_ACCEL_ADDR, 1);
+  uint8_t v = 0;
+  if (Wire.available()) v = Wire.read();
+
+  // Set accelerometer properties based on the model id
+  if (v == 0x4a || v == 0x5a) {
+    // v2 updates at 100/s or every 20 frames
+    accel_model = 1;
+    accel_addr = V2_ACCEL_ADDR;
+    accel_counts = 20;
+    accel_count_wrap = 20;
+    thresh_falloff = 10;
+    thresh_target = 5;
+  } else {
+    // v1 updates 120/s or every 16 and 2/3 frames
+    accel_model = 0;
+    accel_addr = V1_ACCEL_ADDR;
+    accel_counts = 17;
+    accel_count_wrap = 50;
+    thresh_falloff = 12;
+    thresh_target = 6;
   }
 }

@@ -1,8 +1,10 @@
+int NUM_COLORS = 48;
+
 class PalettePanel {
   Group grp, grpEdit;
   Textlabel tlTitle;
   Textfield tfPath;
-  Button[][] btnPalette = new Button[32][4];
+  Button[][] btnPalette = new Button[48][4];
   Button btnSelected;
   Button btnReload, btnWrite, btnSave, btnLoad;
   Slider sldRed, sldGreen, sldBlue;
@@ -60,12 +62,12 @@ class PalettePanel {
       .setValue("")
       .setPosition(490, 190)
       .setSize(140, 20)
-      .setColorBackground(color(64))
+      .setColorBackground(color(0))
       .setCaptionLabel("")
       .setText("primer.palette")
       .setGroup(grpEdit);
 
-    for (int c = 0; c < 32; c++) {
+    for (int c = 0; c < 48; c++) {
       for (int s = 0; s < 4; s++) {
         int v = (s << 6) + c;
         int g = c / 8;
@@ -131,25 +133,31 @@ class PalettePanel {
     btnPalette[v][3].setColorBackground(getColor(v + 192));
   }
 
-  void set(int addr, int val) {
+  void setv(int addr, int val) {
     update(addr, val);
     sendCmd('W', 17, addr, val);
   }
 
   void guiSetR() {
-    set((selected * 3), int(sldRed.getValue()));
+    if (selected >= 0) {
+      setv((selected * 3), int(sldRed.getValue()));
+    }
   }
 
   void guiSetG() {
-    set((selected * 3) + 1, int(sldGreen.getValue()));
+    if (selected >= 0) {
+      setv((selected * 3) + 1, int(sldGreen.getValue()));
+    }
   }
 
   void guiSetB() {
-    set((selected * 3) + 2, int(sldBlue.getValue()));
+    if (selected >= 0) {
+      setv((selected * 3) + 2, int(sldBlue.getValue()));
+    }
   }
 
   void select(int val) {
-    selected = val % 32;
+    selected = val % 64;
     selected_shade = val / 64;
     if (selected != 0) {
       float[] pos = btnPalette[selected][0].getPosition();
@@ -162,6 +170,11 @@ class PalettePanel {
     } else {
       btnSelected.hide();
     }
+  }
+
+  void deselect() {
+    btnSelected.hide();
+    selected = selected_shade = -1;
   }
 
   void show() {
@@ -178,40 +191,33 @@ class PalettePanel {
     grpEdit.hide();
   }
 
-  String compress() {
-    char[] rtn = new char[192];
-    int i;
-    for (int c = 0; c < 32; c++) {
-      i = c * 6;
-      rtn[i + 0] = encode(color_palette[c][0] >> 6);
-      rtn[i + 1] = encode(color_palette[c][0] % 64);
-      rtn[i + 2] = encode(color_palette[c][1] >> 6);
-      rtn[i + 3] = encode(color_palette[c][1] % 64);
-      rtn[i + 4] = encode(color_palette[c][2] >> 6);
-      rtn[i + 5] = encode(color_palette[c][2] % 64);
-    }
-    return new String(rtn);
-  }
-
   void save() {
-    String[] strs = new String[1];
-    strs[0] = compress();
-    saveStrings(tfPath.getText(), strs);
-  }
-
-  void decompress(String s) {
-    if (s.length() == 192) {
-      for (int c = 0; c < 32; c++) {
-        palette_panel.set((c * 4) + 0, (decode(s.charAt((c * 6) + 0)) << 6) + decode(s.charAt((c * 6) + 1)));
-        palette_panel.set((c * 4) + 1, (decode(s.charAt((c * 6) + 2)) << 6) + decode(s.charAt((c * 6) + 3)));
-        palette_panel.set((c * 4) + 2, (decode(s.charAt((c * 6) + 4)) << 6) + decode(s.charAt((c * 6) + 5)));
-      }
-    }
+    saveJSONArray(asJson(), tfPath.getText());
   }
 
   void load() {
-    String[] strs = loadStrings(tfPath.getText());
-    decompress(strs[0]);
+    fromJson(loadJSONArray(tfPath.getText()));
+  }
+
+  JSONArray asJson() {
+    JSONArray colors = new JSONArray();
+    for (int i = 0; i < NUM_COLORS; i++) {
+      JSONArray c = new JSONArray();
+      c.setInt(0, color_palette[i][0]);
+      c.setInt(1, color_palette[i][1]);
+      c.setInt(2, color_palette[i][2]);
+      colors.setJSONArray(i, c);
+    }
+    return colors;
+  }
+
+  void fromJson(JSONArray json) {
+    for (int i = 0; i < max(json.size(), NUM_COLORS); i++) {
+      JSONArray c = json.getJSONArray(i);
+      setv((i * 3) + 0, c.getInt(0));
+      setv((i * 3) + 0, c.getInt(1));
+      setv((i * 3) + 0, c.getInt(2));
+    }
   }
 
   void refresh() {

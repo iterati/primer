@@ -100,7 +100,7 @@ class BundleEditor {
 
     for (int s = 0; s < 16; s++) {
       btnPresets[s] = cp5.addButton("bundlePreset" + s, s)
-        .setPosition(300 + ((s % 8) * 40), 400 + (40 * (s / 8)))
+        .setPosition(84 + (s * 40), 400)
         .setSize(32, 32)
         .setCaptionLabel("PS" + (s + 1))
         .setGroup(grp)
@@ -128,9 +128,14 @@ class BundleEditor {
     selected_s = s;
   }
 
+  void deselect() {
+    selected_b = selected_s = -1;
+    btnSelected.hide();
+  }
+
   void guiChangeSlot(int val) {
     if (selected_s >= 0) {
-      set((20 * selected_b) + selected_s + 1, val);
+      setv((20 * selected_b) + selected_s + 1, val);
     }
   }
 
@@ -187,43 +192,50 @@ class BundleEditor {
     return bundle_slots[b];
   }
 
-  void set(int addr, int val) {
+  void setv(int addr, int val) {
     val = update(addr, val);
     sendCmd('W', 16, addr, val);
   }
 
-  String compress() {
-    char[] rtn = new char[68];
-    for (int b = 0; b < 4; b++) {
-      rtn[b * 17] = encode(bundle_slots[b]);
-      for (int s = 0; s < 16; s++) {
-        rtn[(b * 17) + s + 1] = encode(bundles[b][s]);
-      }
-    }
-
-    return new String(rtn);
-  }
-
   void save() {
-    String[] strs = new String[1];
-    strs[0] = compress();
-    saveStrings(tfPath.getText(), strs);
-  }
-
-  void decompress(String s) {
-    if (s.length() == 68) {
-      for (int b = 0; b < 4; b++) {
-        set(b * 20, decode(s.charAt(b * 17)));
-        for (int i = 0; i < 16; i++) {
-          set((b * 20) + i + 1, decode(s.charAt((b * 17) + i + 1)));
-        }
-      }
-    }
+    saveJSONArray(asJson(), tfPath.getText());
   }
 
   void load() {
-    String[] strs = loadStrings(tfPath.getText());
-    decompress(strs[0]);
+    fromJson(loadJSONArray(tfPath.getText()));
+  }
+
+  JSONArray asJson() {
+    JSONArray bundles = new JSONArray();
+    for (int i = 0; i < 4; i++) {
+      bundles.setJSONObject(i, bundleAsJson(i));
+    }
+    return bundles;
+  }
+
+  JSONObject bundleAsJson(int i) {
+    JSONObject json = new JSONObject();
+    json.setInt("active", bundle_slots[i]);
+    JSONArray slots = new JSONArray();
+    for (int j = 0; j < 16; j++) {
+      slots.setInt(j, bundles[i][j]);
+    }
+    json.setJSONArray("slots", slots);
+    return json;
+  }
+
+  void bundleFromJson(JSONObject json, int i) {
+    setv(i * 20, json.getInt("active"));
+    JSONArray slots = json.getJSONArray("slots");
+    for (int j = 0; j < max(slots.size(), 16); j++) {
+      setv((i * 20) + j + 1, slots.getInt(j));
+    }
+  }
+
+  void fromJson(JSONArray bundles) {
+    for (int i = 0; i < max(bundles.size(), 4); i++) {
+      bundleFromJson(bundles.getJSONObject(i), i);
+    }
   }
 
   void refresh() {
