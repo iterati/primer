@@ -377,6 +377,7 @@ void handleRender() {
 }
 
 void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
+  if (limiter > 32000) { Serial.println(accel_counter); }
   while (limiter < 32000) {}
   limiter = 0;
 
@@ -1237,34 +1238,29 @@ void accelReadXYZ() {
     Wire.endTransmission(false);
     Wire.requestFrom((int)accel_addr, 3);
 
-    while (!Wire.available());
-    xg = Wire.read();
+    if (Wire.available()) xg = Wire.read();
     xg = (xg >= 32) ? -64 + xg : xg;
-    while (!Wire.available());
-    yg = Wire.read();
+
+    if (Wire.available()) yg = Wire.read();
     yg = (yg >= 32) ? -64 + yg : yg;
-    while (!Wire.available());
-    zg = Wire.read();
+
+    if (Wire.available()) zg = Wire.read();
     zg = (zg >= 32) ? -64 + zg : zg;
   } else {
     Wire.write(0x01);
     Wire.endTransmission(false);
     Wire.requestFrom((int)accel_addr, 6);
 
-    while (!Wire.available());
-    xg = Wire.read() << 4;
-    while (!Wire.available());
-    xg |= Wire.read() >> 4;
+    if (Wire.available()) xg = Wire.read() << 4;
+    if (Wire.available()) xg |= Wire.read() >> 4;
     xg = (xg >= 2048) ? -4096 + xg : xg;
-    while (!Wire.available());
-    yg = Wire.read() << 4;
-    while (!Wire.available());
-    yg |= Wire.read() >> 4;
+
+    if (Wire.available()) yg = Wire.read() << 4;
+    if (Wire.available()) yg |= Wire.read() >> 4;
     yg = (yg >= 2048) ? -4096 + yg : yg;
-    while (!Wire.available());
-    zg = Wire.read() << 4;
-    while (!Wire.available());
-    zg |= Wire.read() >> 4;
+
+    if (Wire.available()) zg = Wire.read() << 4;
+    if (Wire.available()) zg |= Wire.read() >> 4;
     zg = (zg >= 2048) ? -4096 + zg : zg;
   }
 }

@@ -320,16 +320,6 @@ void controlEvent(ControlEvent theEvent) {
   }
 }
 
-private static final String codes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+=";
-
-char encode(int i) {
-  return codes.charAt(i);
-}
-
-int decode(char c) {
-  return codes.indexOf(c);
-}
-
 void keyPressed() {
   if (keyCode == KeyEvent.VK_SHIFT) {
     shifted = true;
