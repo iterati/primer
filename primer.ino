@@ -133,10 +133,7 @@ float fxg, fyg, fzg;
 float a_mag, a_pitch, a_roll;
 uint8_t a_speed;
 
-float thresh_bins_p[2][ACCEL_BINS] = {
-  {1.1, 1.195, 1.29, 1.385, 1.48, 1.575, 1.67, 1.765, 1.86, 1.955, 2.05, 2.145, 2.24, 2.335, 2.43, 2.525},
-  {1.1, 1.255, 1.41, 1.565, 1.72, 1.875, 2.03, 2.185, 2.34, 2.495, 2.65, 2.805, 2.96, 3.115, 3.27, 3.425},
-};
+float thresh_bins_p[ACCEL_BINS] = {1.1, 1.195, 1.29, 1.385, 1.48, 1.575, 1.67, 1.765, 1.86, 1.955, 2.05, 2.145, 2.24, 2.335, 2.43, 2.525};
 float thresh_bins_n[ACCEL_BINS] = {0.845, 0.79, 0.735, 0.68, 0.625, 0.57, 0.515, 0.46, 0.405, 0.35, 0.295, 0.24, 0.185, 0.13, 0.075, 0.02};
 uint8_t thresh_last[ACCEL_BINS];
 uint8_t thresh_cnts[ACCEL_BINS];
@@ -247,12 +244,9 @@ const PROGMEM uint8_t factory_bundles[NUM_BUNDLES][NUM_MODES] = {
 
 void setup() {
   Wire.begin();
-  Serial.begin(57600);
 
   button_state = new_state = S_PLAY_OFF;
-
   pinMode(PIN_BUTTON, INPUT);
-
   attachInterrupt(0, pushInterrupt, FALLING);
 
   if (EEPROM.read(ADDR_SLEEPING)) {
@@ -271,6 +265,7 @@ void setup() {
     loadPalette(ADDR_PALETTE);
   }
 
+  Serial.begin(57600);
   cur_bundle = EEPROM.read(ADDR_CUR_BUNDLE);
 
   pinMode(PIN_R, OUTPUT);
@@ -293,6 +288,7 @@ void setup() {
   changeMode(0);
   Serial.write(100); Serial.write(cur_mode_idx); Serial.write(0);
   limiter = 0;
+  wdt_enable(WDTO_15MS);
 }
 
 void loop() {
@@ -369,7 +365,7 @@ void handleRender() {
   }
 
   if (conjure && conjure_toggle) {
-    if (since_trans > 2000 * 180) {
+    if (since_trans > (2000 * 180)) {
       enterSleep();
     }
     led_r = led_g = led_b = 0;
@@ -377,13 +373,14 @@ void handleRender() {
 }
 
 void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
-  if (limiter > 32000) { Serial.println(accel_counter); }
+  /* if (limiter > 32000) { Serial.println(accel_counter); } */
   while (limiter < 32000) {}
   limiter = 0;
 
   analogWrite(PIN_R, r);
   analogWrite(PIN_G, g);
   analogWrite(PIN_B, b);
+  wdt_reset();
 }
 
 void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
@@ -462,6 +459,7 @@ void handlePress(bool pressed) {
         conjure_toggle = false;
         new_state = S_PLAY_OFF;
       }
+      break;
 
     case S_PLAY_LOCK_WAIT:
       if (since_trans == 0) flash(128, 0, 0, 5);
@@ -817,11 +815,9 @@ void handlePress(bool pressed) {
 
 void enterSleep() {
   writeFrame(0, 0, 0);
+  accelStandby();
   EEPROM.update(ADDR_SLEEPING, 1);
   digitalWrite(PIN_LDO, LOW);
-
-  delay(6400);
-  wdt_enable(WDTO_15MS);
   delay(64000);
 }
 
@@ -1220,12 +1216,21 @@ void accelSend(uint8_t addr, uint8_t data) {
 void accelInit() {
   if (accel_model == 0) {
     accelSend(0x07, 0x00);        // Standby to accept new settings
-    accelSend(0x08, 0x00);        // Set 120 samples/sec (every 16 2/3 frames)
+    accelSend(0x08, 0x01);        // Set 64 samples/sec (every 31.25 frames)
     accelSend(0x07, 0x01);        // Active mode
   } else {
     accelSend(0x2A, 0x00);        // Standby to accept new settings
     accelSend(0x0E, 0x00);        // Set +-2g range
-    accelSend(0x2A, 0b00011001);  // Set 100 samples/sec (every 20 frames) and active
+    accelSend(0x2B, 0b00011000);  // Low Power SLEEP
+    accelSend(0x2A, 0b00100001);  // Set 50 samples/sec (every 40 frames) and active
+  }
+}
+
+void accelStandby() {
+  if (accel_model == 0) {
+    accelSend(0x07, 0x00);
+  } else {
+    accelSend(0x2A, 0x00);
   }
 }
 
@@ -1277,7 +1282,7 @@ void accelUpdateBins() {
   // v2 max is - 3.46
   a_speed = 0;
   for (uint8_t i = 0; i < ACCEL_BINS; i++) {
-    if (a_mag > thresh_bins_p[accel_model][i] || a_mag < thresh_bins_n[i]) {
+    if (a_mag > thresh_bins_p[i] || a_mag < thresh_bins_n[i]) {
       thresh_last[i] = 0;
       thresh_cnts[i] = constrain(thresh_cnts[i] + 1, 0, 200);
     }
@@ -1308,12 +1313,12 @@ void detectAccelModel() {
     thresh_falloff = 10;
     thresh_target = 5;
   } else {
-    // v1 updates 120/s or every 16 and 2/3 frames
+    // v1 updates 64/s or (31.25 frames)
     accel_model = 0;
     accel_addr = V1_ACCEL_ADDR;
-    accel_counts = 17;
-    accel_count_wrap = 50;
-    thresh_falloff = 12;
-    thresh_target = 6;
+    accel_counts = 32;
+    accel_count_wrap = 125;
+    thresh_falloff = 8;
+    thresh_target = 4;
   }
 }
