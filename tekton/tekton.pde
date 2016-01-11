@@ -53,7 +53,7 @@ Boolean shifted = false;
 
 
 void setup() {
-  surface.setTitle("Tekton for Primer 0.8");
+  surface.setTitle("Tekton for Primer 0.9");
   size(1000, 800);
   cp5 = new ControlP5(this);
 
@@ -138,9 +138,7 @@ void readResp() {
     initialized = true;
     dump_mode = 1;
     sendCmd('X', 10, 0, 0); // Change to gui play mode
-    sendCmd('D', 17, 0, 0);
-    sendCmd('D', 16, 0, 0);
-    sendCmd('D', 0, 0, 0);
+    sendCmd('D', 99, 0, 0);
   } else if (target == 200) {
     /* cur_preset_idx = val; */
     if (addr == cur_preset_idx || addr == 17) {
@@ -177,7 +175,6 @@ void readData(int target, int addr, int val) {
     bundle_editor.update(addr, val);
   } else if (target == 17) {
     palette_panel.update(addr, val);
-    color_palette[addr / 3][addr % 3] = val;
   }
 }
 
@@ -186,14 +183,21 @@ int getColor(int v) {
   int c = v % 64;
   int alpha = 127 + (128 >> s);
   if (c != 0) {
-    float r = ((color_palette[c][0] / 255.0) * 192) + 63;
-    float g = ((color_palette[c][1] / 255.0) * 192) + 63;
-    float b = ((color_palette[c][2] / 255.0) * 192) + 63;
+    float r = (((color_palette[c][0] >> s) / 255.0) * 192) + 63;
+    float g = (((color_palette[c][1] >> s) / 255.0) * 192) + 63;
+    float b = (((color_palette[c][2] >> s) / 255.0) * 192) + 63;
     return (alpha << 24) + (int(r) << 16) + (int(g) << 8) + int(b);
   } else {
     return 0;
   }
 }
+
+/* void controlEvent(CallbackEvent theEvent) { */
+/*   Controller eController = theEvent.getController(); */
+/*   String eName = eController.getName(); */
+/*   float eVal = eController.getValue(); */
+/*   int eId = eController.getId(); */
+/*   int eAction = theEvent.getAction(); */
 
 void controlEvent(ControlEvent theEvent) {
   int val = int(theEvent.getValue());
@@ -207,18 +211,18 @@ void controlEvent(ControlEvent theEvent) {
     } else if (evt.startsWith("presetPattern1")) {
       preset_editor.setv(cur_preset_idx, 2, val);
     } else if (evt.startsWith("presetPattern2")) {
-      preset_editor.setv(cur_preset_idx, 20, val);
+      preset_editor.setv(cur_preset_idx, 3, val);
     } else if (evt.startsWith("presetColor")) {
       preset_editor.select(val);
     } else if (evt.startsWith("presetLess1")) {
-      preset_editor.setv(cur_preset_idx, 3, 99);
+      preset_editor.setv(cur_preset_idx, 4, 99);
     } else if (evt.startsWith("presetLess2")) {
-      preset_editor.setv(cur_preset_idx, 21, 99);
+      preset_editor.setv(cur_preset_idx, 5, 99);
     } else if (evt.startsWith("presetMore1")) {
-      int v = preset_editor.setv(cur_preset_idx, 3, 100);
+      int v = preset_editor.setv(cur_preset_idx, 4, 100);
       /* sendCmd('R', cur_preset_idx, 3 + v, 0); */
     } else if (evt.startsWith("presetMore2")) {
-      int v = preset_editor.setv(cur_preset_idx, 21, 100);
+      int v = preset_editor.setv(cur_preset_idx, 5, 100);
       /* sendCmd('R', cur_preset_idx, 21 + v, 0); */
     } else if (evt.startsWith("presetReload")) {
       sendCmd('L', cur_preset_idx, 0, 0);

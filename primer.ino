@@ -8,7 +8,7 @@
 #include "palette.h"
 #include "pattern.h"
 
-#define EEPROM_VERSION          202
+#define EEPROM_VERSION          42
 
 #define ACCEL_BINS              16
 #define NUM_MODES               16
@@ -137,7 +137,7 @@ float thresh_bins_p[ACCEL_BINS] = {1.1, 1.195, 1.29, 1.385, 1.48, 1.575, 1.67, 1
 float thresh_bins_n[ACCEL_BINS] = {0.845, 0.79, 0.735, 0.68, 0.625, 0.57, 0.515, 0.46, 0.405, 0.35, 0.295, 0.24, 0.185, 0.13, 0.075, 0.02};
 uint8_t thresh_last[ACCEL_BINS];
 uint8_t thresh_cnts[ACCEL_BINS];
-uint8_t thresh_timings[3] = {30, 18, 6};
+uint8_t thresh_timings[3] = {12, 6, 3};
 uint8_t thresh_falloff;
 uint8_t thresh_target;
 
@@ -150,7 +150,7 @@ uint8_t bundles[NUM_BUNDLES][NUM_MODES];
 uint8_t cur_variant = 0;
 int16_t accel_counter = 0;
 uint16_t tick[2];
-uint8_t cur_color[2];
+uint8_t cidx[2];
 int16_t cntr[2];
 
 typedef struct Mode {
@@ -235,7 +235,7 @@ const PROGMEM uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
     0x21, 0x24, 0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_OFF, ASENS_LOW, P_GROW, 6, 1,
+  {AMODE_OFF, ASENS_LOW, P_GROW, P_STROBE, 6, 1,
     0x28, 0, 0x2b, 0, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
@@ -314,17 +314,19 @@ void resetMode() {
   mode = &pmodes[cur_mode_idx].m;
   cur_variant = 0;
   accel_counter = 0;
-  tick[0] = cur_color[0] = cntr[0] = 0;
-  tick[1] = cur_color[1] = cntr[1] = 0;
+  tick[0] = cidx[0] = cntr[0] = 0;
+  tick[1] = cidx[1] = cntr[1] = 0;
 }
 
 void renderMode() {
   renderPattern(
       mode->pattern[0], mode->num_colors[0], mode->colors[0],
-      tick[0], cur_color[0], cntr[0], led_r, led_g, led_b, cur_variant == 0);
+      tick[0], cidx[0], cntr[0],
+      led_r, led_g, led_b, cur_variant == 0);
   renderPattern(
       mode->pattern[1], mode->num_colors[1], mode->colors[1],
-      tick[1], cur_color[1], cntr[1], led_r, led_g, led_b, cur_variant == 1);
+      tick[1], cidx[1], cntr[1],
+      led_r, led_g, led_b, cur_variant == 1);
 }
 
 void handleRender() {
@@ -373,6 +375,7 @@ void handleRender() {
 
   if (conjure && conjure_toggle) {
     if (since_trans > (2000 * 180)) {
+      Serial.println("");
       enterSleep();
     }
     led_r = led_g = led_b = 0;
@@ -420,8 +423,13 @@ void handlePress(bool pressed) {
 
     case S_PLAY_PRESSED:
       if (conjure) {
+        if (since_trans == VERY_LONG_PRESS) flash(0, 128, 0, 5);
         if (!pressed) {
           conjure_toggle = !conjure_toggle;
+          new_state = S_PLAY_OFF;
+        } else if (since_trans >= VERY_LONG_PRESS) {
+          conjure = conjure_toggle = false;
+          new_state = S_PLAY_OFF;
         }
       } else {
         if (since_trans >= SHORT_HOLD) {
@@ -909,7 +917,6 @@ void loadMemory() {
 
 
 void cmdReadMode(uint8_t idx, uint8_t addr) {
-  uint8_t v, i;
   Serial.write(idx);
   Serial.write(addr);
   if (addr < MODE_SIZE) Serial.write(pmodes[idx].d[addr]);
@@ -934,7 +941,7 @@ void cmdReadPalette(uint8_t addr) {
 void cmdRead(uint8_t target, uint8_t addr) {
   if      (target < 16)  cmdReadMode(target, addr);
   else if (target == 16) cmdReadBundles(addr);
-  else if (target = 17)  cmdReadPalette(addr);
+  else if (target == 17) cmdReadPalette(addr);
 }
 
 void cmdWriteMode(uint8_t idx, uint8_t addr, uint8_t val) {
@@ -954,7 +961,7 @@ void cmdWritePalette(uint8_t addr, uint8_t val) {
 void cmdWrite(uint8_t target, uint8_t addr, uint8_t val) {
   if      (target < 16)  cmdWriteMode(target, addr, val);
   else if (target == 16) cmdWriteBundles(addr, val);
-  else if (target = 17)  cmdWritePalette(addr, val);
+  else if (target == 17) cmdWritePalette(addr, val);
 }
 
 void cmdDumpMode(uint8_t idx) {
@@ -968,7 +975,9 @@ void cmdDumpBundles() {
 }
 
 void cmdDumpPalette() {
-  for (uint8_t c = 0; c < (NUM_COLORS * 3); c++) cmdReadPalette(c);
+  for (uint8_t c = 0; c < (NUM_COLORS * 3); c++) {
+    cmdReadPalette(c);
+  }
 }
 
 void cmdDump(uint8_t target) {
@@ -977,14 +986,14 @@ void cmdDump(uint8_t target) {
     cmdDumpMode(target);
   } else if (target == 16) {
     cmdDumpBundles();
-  } else if (target = 17) {
+  } else if (target == 17) {
     cmdDumpPalette();
   } else if (target == 99) {
+    cmdDumpPalette();
     for (uint8_t i = 0; i < NUM_MODES; i++) {
       cmdDumpMode(i);
     }
     cmdDumpBundles();
-    cmdDumpPalette();
   }
   Serial.write(201); Serial.write(target); Serial.write(cur_mode_idx);
 }
@@ -994,7 +1003,7 @@ void cmdLoad(uint8_t target) {
     loadMode(target);
   } else if (target == 16) {
     loadBundles();
-  } else if (target = 17) {
+  } else if (target == 17) {
     loadPalette(ADDR_PALETTE);
   } else if (target == 99) {
     loadModes();
@@ -1008,7 +1017,7 @@ void cmdSave(uint8_t target) {
     saveMode(target);
   } else if (target == 16) {
     saveBundles();
-  } else if (target = 17) {
+  } else if (target == 17) {
     savePalette(ADDR_PALETTE);
   } else if (target == 99) {
     saveModes();
@@ -1031,10 +1040,18 @@ void cmdExecute(uint8_t action, uint8_t arg0, uint8_t arg1) {
     cur_mode_idx = arg0;
     resetMode();
   } else if (action == 10) {
-    if (arg0 == 0) {        new_state = S_GUI_MODE;
-    } else if (arg0 == 1) { new_state = S_GUI_PALETTE;
-    } else if (arg0 == 2) { new_state = S_GUI_BUNDLES;
-    } else {                new_state = S_PLAY_OFF;
+    if (arg0 == 0) {
+      wdt_disable();
+      new_state = S_GUI_MODE;
+    } else if (arg0 == 1) {
+      wdt_disable();
+      new_state = S_GUI_PALETTE;
+    } else if (arg0 == 2) {
+      wdt_disable();
+      new_state = S_GUI_BUNDLES;
+    } else {
+      wdt_enable(WDTO_15MS);
+      new_state = S_PLAY_OFF;
     }
   } else if (action == 20) {
     gui_color = arg0;

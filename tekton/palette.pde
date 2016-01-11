@@ -124,13 +124,15 @@ class PalettePanel {
 
   void update(int addr, int val) {
     int v = addr / 3;
-    int c = addr % 3 ;
-    color_palette[v][c] = val;
-
-    btnPalette[v][0].setColorBackground(getColor(v));
-    btnPalette[v][1].setColorBackground(getColor(v + 64));
-    btnPalette[v][2].setColorBackground(getColor(v + 128));
-    btnPalette[v][3].setColorBackground(getColor(v + 192));
+    int c = addr % 3;
+    if (v >= 48) {
+    } else {
+      color_palette[v][c] = val;
+      btnPalette[v][0].setColorBackground(getColor(v));
+      btnPalette[v][1].setColorBackground(getColor(v + 64));
+      btnPalette[v][2].setColorBackground(getColor(v + 128));
+      btnPalette[v][3].setColorBackground(getColor(v + 192));
+    }
   }
 
   void setv(int addr, int val) {
@@ -215,8 +217,8 @@ class PalettePanel {
     for (int i = 0; i < max(json.size(), NUM_COLORS); i++) {
       JSONArray c = json.getJSONArray(i);
       setv((i * 3) + 0, c.getInt(0));
-      setv((i * 3) + 0, c.getInt(1));
-      setv((i * 3) + 0, c.getInt(2));
+      setv((i * 3) + 1, c.getInt(1));
+      setv((i * 3) + 2, c.getInt(2));
     }
   }
 

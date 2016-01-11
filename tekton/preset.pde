@@ -273,15 +273,15 @@ class PresetEditor {
     } else if (addr == 2) {
       return setPattern(target, 0, val);
     } else if (addr == 3) {
-      return setNumColors(target, 0, val);
-    } else if (addr < 20) {
-      return setColor(target, 0, addr - 4, val);
-    } else if (addr == 20) {
       return setPattern(target, 1, val);
-    } else if (addr == 21) {
+    } else if (addr == 4) {
+      return setNumColors(target, 0, val);
+    } else if (addr == 5) {
       return setNumColors(target, 1, val);
     } else if (addr < 38) {
-      return setColor(target, 1, addr - 22, val);
+      int v = (addr - 6) / 16;
+      int s = (addr - 6) % 16;
+      return setColor(target, v, s, val);
     }
     return 0;
   }
@@ -290,14 +290,6 @@ class PresetEditor {
     val = update(target, addr, val);
     sendCmd('W', target, addr, val);
     return val;
-  }
-
-  void hide() {
-    grp.hide();
-  }
-
-  void show() {
-    grp.show();
   }
 
   void select(int i) {
@@ -319,7 +311,7 @@ class PresetEditor {
 
   void guiChangeColor(int val) {
     if (selected_s >= 0) {
-      setv(cur_preset_idx, (selected_v * 18) + selected_s + 4, val);
+      setv(cur_preset_idx, (selected_v * 16) + selected_s + 6, val);
     }
   }
 
@@ -409,11 +401,11 @@ class PresetEditor {
     JSONArray variants = json.getJSONArray("variants");
     for (int j = 0; j < 2; j++) {
       JSONObject variant = variants.getJSONObject(j);
-      setv(i, (j * 18) + 2, variant.getInt("pattern"));
-      setv(i, (j * 18) + 3, variant.getInt("num_colors"));
+      setv(i, 2 + j, variant.getInt("pattern"));
+      setv(i, 4 + j, variant.getInt("num_colors"));
       JSONArray colors = variant.getJSONArray("colors");
       for (int k = 0; k < 16; k++) {
-        setv(i, (j * 18) + k + 4, colors.getInt(k));
+        setv(i, 6 + (j * 16) + k, colors.getInt(k));
       }
     }
   }
@@ -461,5 +453,13 @@ class PresetEditor {
         btnMore[v].show();
       }
     }
+  }
+
+  void hide() {
+    grp.hide();
+  }
+
+  void show() {
+    grp.show();
   }
 }
