@@ -154,83 +154,90 @@ uint8_t cur_color[2];
 int16_t cntr[2];
 
 typedef struct Mode {
-  uint8_t accel_mode, accel_sens;
-  uint8_t pattern[2];
-  uint8_t num_colors[2];
-  uint8_t colors[2][PALETTE_SIZE];
-} Mode;
+  uint8_t accel_mode, accel_sens;   // 2B
+  uint8_t pattern[2];               // 2B
+  uint8_t num_colors[2];            // 2B
+  uint8_t colors[2][PALETTE_SIZE];  // 32B
+} Mode;                             // 38B
 
-Mode modes[NUM_MODES];
+#define MODE_SIZE 38
+typedef union PackedMode {
+  Mode m;
+  uint8_t d[MODE_SIZE];
+} PackedMode;
+
+/* Mode modes[NUM_MODES]; */
+PackedMode pmodes[NUM_MODES];
 Mode* mode;
 
 
-const PROGMEM uint8_t factory_modes[NUM_MODES][38] = {
-  {AMODE_SPEED, ASENS_HIGH,
-    P_HYPER3, 6, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_DOPS3, 6, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+const PROGMEM uint8_t factory_modes[NUM_MODES][MODE_SIZE] = {
+  {AMODE_SPEED, ASENS_HIGH, P_HYPER3, P_DOPS3, 6, 6,
+    0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_SPEED, ASENS_MEDIUM,
-    P_BLASTER, 7, 0x01, 0x87, 0x86, 0x85, 0x84, 0x83, 0x82, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBIEFUSE, 3, 0x48, 0x50, 0x58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_SPEED, ASENS_MEDIUM, P_BLASTER, P_STROBIEFUSE, 7, 3,
+    0x01, 0x87, 0x86, 0x85, 0x84, 0x83, 0x82, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0x48, 0x50, 0x58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_SPEED, ASENS_LOW,
-    P_STROBIE, 2, 0xce, 0x1a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_VEXING, 2, 0xce, 0x1a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_SPEED, ASENS_LOW, P_STROBIE, P_VEXING, 2, 2,
+    0xce, 0x1a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0xce, 0x1a, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_SPEED, ASENS_LOW,
-    P_DASHDOPS, 7, 0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_DOPSDASH, 7, 0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-
-  {AMODE_OFF, ASENS_LOW,
-    P_RAZOR5, 15, 0x08, 0x0a, 0x0c, 0x08, 0x10,  0x18, 0x1a, 0x1c, 0x18, 0x08,  0x10, 0x12, 0x14, 0x10, 0x18,  0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_BLASTER3, 9, 0x01, 0xc8, 0xc8, 0x01, 0xd0, 0xd0, 0x01, 0xd8, 0xd8, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_WAVE, 4, 0x18, 0x14, 0x16, 0x12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  },
-  {AMODE_OFF, ASENS_LOW,
-    P_STRETCH, 3, 0x1e, 0x1a, 0x15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_SPEED, ASENS_LOW, P_DASHDOPS, P_DOPSDASH, 7, 7,
+    0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
 
-  {AMODE_OFF, ASENS_LOW,
-    P_DASHMORPH, 3, 0x21, 0x22, 0x23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_RAZOR5, P_STROBE, 15, 1,
+    0x08, 0x0a, 0x0c, 0x08, 0x10,  0x18, 0x1a, 0x1c, 0x18, 0x08,  0x10, 0x12, 0x14, 0x10, 0x18,  0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_OFF, ASENS_LOW,
-    P_PULSAR, 3, 0x1f, 0x1c, 0x19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_BLASTER3, P_STROBE, 9, 1,
+    0x01, 0xc8, 0xc8, 0x01, 0xd0, 0xd0, 0x01, 0xd8, 0xd8, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_OFF, ASENS_LOW,
-    P_DOTTED, 13, 0xc1, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_WAVE, P_STROBE, 4, 1,
+    0x18, 0x14, 0x16, 0x12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_OFF, ASENS_LOW,
-    P_BOTTLEROCKET, 7, 0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_STRETCH, P_STROBE, 3, 1,
+    0x1e, 0x1a, 0x15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
 
-  {AMODE_OFF, ASENS_LOW,
-    P_BLASTER3, 6, 0x1f, 0xd4, 0xd4, 0x14, 0xdf, 0xdf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_DASHMORPH, P_STROBE, 3, 1,
+    0x21, 0x22, 0x23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_OFF, ASENS_LOW,
-    P_BLASTER3, 6, 0x26, 0xec, 0xec, 0x2c, 0xe6, 0xe6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_PULSAR, P_STROBE, 3, 1,
+    0x1f, 0x1c, 0x19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_OFF, ASENS_LOW,
-    P_INFLUX, 3, 0x21, 0x24, 0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_DOTTED, P_STROBE, 13, 1,
+    0xc1, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x16, 0x18, 0x1a, 0x1c, 0x1e, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
-  {AMODE_OFF, ASENS_LOW,
-    P_GROW, 6, 0x28, 0, 0x2b, 0, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    P_STROBE, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  {AMODE_OFF, ASENS_LOW, P_BOTTLEROCKET, P_STROBE, 7, 1,
+    0x01, 0x24, 0x26, 0x28, 0x2a, 0x2c, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+
+  {AMODE_OFF, ASENS_LOW, P_BLASTER3, P_STROBE, 6, 1,
+    0x1f, 0xd4, 0xd4, 0x14, 0xdf, 0xdf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_OFF, ASENS_LOW, P_BLASTER3, P_STROBE, 6, 1,
+    0x26, 0xec, 0xec, 0x2c, 0xe6, 0xe6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_OFF, ASENS_LOW, P_INFLUX, P_STROBE, 3, 1,
+    0x21, 0x24, 0x25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  },
+  {AMODE_OFF, ASENS_LOW, P_GROW, 6, 1,
+    0x28, 0, 0x2b, 0, 0x2e, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   },
 };
 const PROGMEM uint8_t factory_bundle_slots[NUM_BUNDLES] = {16, 4, 4, 4};
@@ -304,7 +311,7 @@ void loop() {
 }
 
 void resetMode() {
-  mode = &modes[cur_mode_idx];
+  mode = &pmodes[cur_mode_idx].m;
   cur_variant = 0;
   accel_counter = 0;
   tick[0] = cur_color[0] = cntr[0] = 0;
@@ -395,11 +402,8 @@ void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
 
 
 void changeMode(uint8_t v) {
-  if (v == 0) {
-    bundle_idx = 0;
-  } else {
-    bundle_idx = (bundle_idx + 1) % bundle_slots[cur_bundle];
-  }
+  if (v == 0) bundle_idx = 0;
+  else        bundle_idx = (bundle_idx + 1) % bundle_slots[cur_bundle];
 
   cur_mode_idx = bundles[cur_bundle][bundle_idx];
   resetMode();
@@ -759,7 +763,9 @@ void handlePress(bool pressed) {
         flash(128, 0, 0, 1);
         flash(0, 0, 128, 1);
         flash(128, 0, 0, 1);
+        wdt_disable();
         resetMemory();
+        wdt_enable(WDTO_15MS);
         new_state = S_HELD;
       } else if (!pressed) {
         enterSleep();
@@ -832,15 +838,8 @@ void clearMemory() {
 
 void initModes() {
   for (uint8_t m = 0; m < NUM_MODES; m++) {
-    modes[m].accel_mode = pgm_read_byte(&factory_modes[m][0]);
-    modes[m].accel_sens = pgm_read_byte(&factory_modes[m][1]);
-    modes[m].pattern[0] = pgm_read_byte(&factory_modes[m][2]);
-    modes[m].num_colors[0] = pgm_read_byte(&factory_modes[m][3]);
-    modes[m].pattern[1] = pgm_read_byte(&factory_modes[m][20]);
-    modes[m].num_colors[1] = pgm_read_byte(&factory_modes[m][21]);
-    for (uint8_t c = 0; c < 16; c++) {
-      modes[m].colors[0][c] = pgm_read_byte(&factory_modes[m][c + 4]);
-      modes[m].colors[1][c] = pgm_read_byte(&factory_modes[m][c + 22]);
+    for (uint8_t b = 0; b < MODE_SIZE; b++) {
+      pmodes[m].d[b] = pgm_read_byte(&factory_modes[m][b]);
     }
   }
 }
@@ -855,15 +854,8 @@ void initBundles() {
 }
 
 void saveMode(uint8_t idx) {
-  EEPROM.update(ADDR_MODES + (idx * 40) + 0, modes[idx].accel_mode);
-  EEPROM.update(ADDR_MODES + (idx * 40) + 1, modes[idx].accel_sens);
-  EEPROM.update(ADDR_MODES + (idx * 40) + 2, modes[idx].pattern[0]);
-  EEPROM.update(ADDR_MODES + (idx * 40) + 3, modes[idx].num_colors[0]);
-  EEPROM.update(ADDR_MODES + (idx * 40) + 20, modes[idx].pattern[1]);
-  EEPROM.update(ADDR_MODES + (idx * 40) + 21, modes[idx].num_colors[1]);
-  for (uint8_t c = 0; c < 16; c++) {
-    EEPROM.update(ADDR_MODES + (idx * 40) + c + 4, modes[idx].colors[0][c]);
-    EEPROM.update(ADDR_MODES + (idx * 40) + c + 22, modes[idx].colors[1][c]);
+  for (uint8_t b = 0; b < MODE_SIZE; b++) {
+    EEPROM.update(ADDR_MODES + (idx * 40) + b, pmodes[idx].d[b]);
   }
 }
 
@@ -881,15 +873,8 @@ void saveBundles() {
 }
 
 void loadMode(uint8_t idx) {
-  modes[idx].accel_mode = EEPROM.read(ADDR_MODES + (idx * 40) + 0);
-  modes[idx].accel_sens = EEPROM.read(ADDR_MODES + (idx * 40) + 1);
-  modes[idx].pattern[0] = EEPROM.read(ADDR_MODES + (idx * 40) + 2);
-  modes[idx].num_colors[0] = EEPROM.read(ADDR_MODES + (idx * 40) + 3);
-  modes[idx].pattern[1] = EEPROM.read(ADDR_MODES + (idx * 40) + 20);
-  modes[idx].num_colors[1] = EEPROM.read(ADDR_MODES + (idx * 40) + 21);
-  for (uint8_t c = 0; c < 16; c++) {
-    modes[idx].colors[0][c] = EEPROM.read(ADDR_MODES + (idx * 40) + c + 4);
-    modes[idx].colors[1][c] = EEPROM.read(ADDR_MODES + (idx * 40) + c + 22);
+  for (uint8_t b = 0; b < MODE_SIZE; b++) {
+    pmodes[idx].d[b] = EEPROM.read(ADDR_MODES + (idx * 40) + b);
   }
 }
 
@@ -927,23 +912,8 @@ void cmdReadMode(uint8_t idx, uint8_t addr) {
   uint8_t v, i;
   Serial.write(idx);
   Serial.write(addr);
-  if (addr == 0) {
-    Serial.write(modes[idx].accel_mode);
-  } else if (addr == 1) {
-    Serial.write(modes[idx].accel_sens);
-  } else if (addr < 38) {
-    v = (addr - 2) / 18;
-    i = (addr - 2) % 18;
-    if (i == 0) {
-      Serial.write(modes[idx].pattern[v]);
-    } else if (i == 1) {
-      Serial.write(modes[idx].num_colors[v]);
-    } else {
-      Serial.write(modes[idx].colors[v][i - 2]);
-    }
-  } else {
-    Serial.write(0);
-  }
+  if (addr < MODE_SIZE) Serial.write(pmodes[idx].d[addr]);
+  else                  Serial.write(0);
 }
 
 void cmdReadBundles(uint8_t addr) {
@@ -951,9 +921,8 @@ void cmdReadBundles(uint8_t addr) {
   uint8_t s = addr % 20;
   Serial.write(16);
   Serial.write(addr);
-  if (s == 0) { Serial.write(bundle_slots[b]);
-  } else {      Serial.write(bundles[b][s - 1]);
-  }
+  if (s == 0) Serial.write(bundle_slots[b]);
+  else        Serial.write(bundles[b][s - 1]);
 }
 
 void cmdReadPalette(uint8_t addr) {
@@ -963,45 +932,19 @@ void cmdReadPalette(uint8_t addr) {
 }
 
 void cmdRead(uint8_t target, uint8_t addr) {
-  if (target < 16) {
-    cmdReadMode(target, addr);
-  } else if (target == 16) {
-    cmdReadBundles(addr);
-  } else if (target = 17) {
-    cmdReadPalette(addr);
-  }
+  if      (target < 16)  cmdReadMode(target, addr);
+  else if (target == 16) cmdReadBundles(addr);
+  else if (target = 17)  cmdReadPalette(addr);
 }
 
 void cmdWriteMode(uint8_t idx, uint8_t addr, uint8_t val) {
-  uint8_t v, i;
-  if (addr == 0) {
-    modes[idx].accel_mode = val;
-  } else if (addr == 1) {
-    modes[idx].accel_sens = val;
-  } else if (addr < 38) {
-    v = (addr - 2) / 18;
-    i = (addr - 2) % 18;
-    if (i == 0) {
-      modes[idx].pattern[v] = val;
-    } else if (i == 1) {
-      if (val == 100) {
-        modes[idx].num_colors[v] = constrain(modes[idx].num_colors[v] + 1, 1, 16);
-      } else if (val == 99) {
-        modes[idx].num_colors[v] = constrain(modes[idx].num_colors[v] - 1, 1, 16);
-      } else {
-        modes[idx].num_colors[v] = val;
-      }
-    } else {
-      modes[idx].colors[v][i - 2] = val;
-    }
-  }
+  if (addr < MODE_SIZE) pmodes[idx].d[addr] = val;
   if (idx == cur_mode_idx) resetMode();
 }
 
 void cmdWriteBundles(uint8_t addr, uint8_t val) {
-  if (addr % 20 == 0) { bundle_slots[addr / 20] = val;
-  } else {              bundles[addr / 20][(addr % 20) - 1] = val;
-  }
+  if (addr % 20 == 0) bundle_slots[addr / 20] = val;
+  else                bundles[addr / 20][(addr % 20) - 1] = val;
 }
 
 void cmdWritePalette(uint8_t addr, uint8_t val) {
@@ -1009,18 +952,13 @@ void cmdWritePalette(uint8_t addr, uint8_t val) {
 }
 
 void cmdWrite(uint8_t target, uint8_t addr, uint8_t val) {
-  if (target < 16) {
-    cmdWriteMode(target, addr, val);
-  } else if (target == 16) {
-    cmdWriteBundles(addr, val);
-  } else if (target = 17) {
-    cmdWritePalette(addr, val);
-  }
-  cmdRead(target, addr);
+  if      (target < 16)  cmdWriteMode(target, addr, val);
+  else if (target == 16) cmdWriteBundles(addr, val);
+  else if (target = 17)  cmdWritePalette(addr, val);
 }
 
 void cmdDumpMode(uint8_t idx) {
-  for (uint8_t i = 0; i < 38; i++) cmdReadMode(idx, i);
+  for (uint8_t i = 0; i < MODE_SIZE; i++) cmdReadMode(idx, i);
 }
 
 void cmdDumpBundles() {
