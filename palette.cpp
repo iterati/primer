@@ -91,8 +91,12 @@ void unpackColor(uint8_t color, uint8_t& r, uint8_t& g, uint8_t& b) {
 }
 
 void morphColor(uint16_t tick, uint16_t morph_time, uint8_t r0, uint8_t g0, uint8_t b0,
-                uint8_t r1, uint8_t g1, uint8_t b1, uint8_t& r, uint8_t& g, uint8_t& b) {
-  r = r0 + (int)(r1 - r0) * (tick / (float)morph_time);
-  g = g0 + (int)(g1 - g0) * (tick / (float)morph_time);
-  b = b0 + (int)(b1 - b0) * (tick / (float)morph_time);
+    uint8_t r1, uint8_t g1, uint8_t b1, uint8_t& r, uint8_t& g, uint8_t& b) {
+  float f = tick / (float)morph_time;
+  r = r0 + ((int)(r1 - r0) * f);
+  g = g0 + ((int)(g1 - g0) * f);
+  b = b0 + ((int)(b1 - b0) * f);
+  /* r = r0 + (((int)(r1 - r0) * tick) / morph_time); */
+  /* g = g0 + (((int)(g1 - g0) * tick) / morph_time); */
+  /* b = b0 + (((int)(b1 - b0) * tick) / morph_time); */
 }

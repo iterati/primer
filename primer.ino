@@ -10,7 +10,7 @@
 
 #define EEPROM_VERSION          42
 
-#define ACCEL_BINS              16
+#define ACCEL_BINS              12
 #define NUM_MODES               16
 #define NUM_BUNDLES             4
 
@@ -32,9 +32,12 @@
 #define ADDR_SLEEPING           1023
 
 #define PRESS_DELAY             100
-#define SHORT_HOLD              1000
-#define LONG_HOLD               2000
-#define VERY_LONG_HOLD          6000
+/* #define SHORT_HOLD              1000 */
+/* #define LONG_HOLD               2000 */
+/* #define VERY_LONG_HOLD          6000 */
+#define SHORT_HOLD              500
+#define LONG_HOLD               1000
+#define VERY_LONG_HOLD          3000
 
 #define S_PLAY_OFF              0
 #define S_PLAY_PRESSED          1
@@ -121,20 +124,17 @@ uint8_t button_state, new_state, config_state;
 uint64_t since_trans = 0;
 
 uint8_t accel_model;
-uint8_t accel_addr;
+int accel_addr;
 uint8_t accel_counts;
 uint8_t accel_count_wrap;
 uint8_t accel_tick = 0;
 int16_t xg, yg, zg;
-int16_t lxg = 0;
-int16_t lyg = 0;
-int16_t lzg = 0;
 float fxg, fyg, fzg;
+float fxg2, fyg2, fzg2;
 float a_mag, a_pitch, a_roll;
 uint8_t a_speed;
 
-float thresh_bins_p[ACCEL_BINS] = {1.1, 1.195, 1.29, 1.385, 1.48, 1.575, 1.67, 1.765, 1.86, 1.955, 2.05, 2.145, 2.24, 2.335, 2.43, 2.525};
-float thresh_bins_n[ACCEL_BINS] = {0.845, 0.79, 0.735, 0.68, 0.625, 0.57, 0.515, 0.46, 0.405, 0.35, 0.295, 0.24, 0.185, 0.13, 0.075, 0.02};
+float thresh_bins_p[ACCEL_BINS] = {1.1, 1.233, 1.367, 1.5, 1.633, 1.767, 1.9, 2.033, 2.167, 2.3, 2.433, 2.567};
 uint8_t thresh_last[ACCEL_BINS];
 uint8_t thresh_cnts[ACCEL_BINS];
 uint8_t thresh_timings[3] = {12, 6, 3};
@@ -166,7 +166,6 @@ typedef union PackedMode {
   uint8_t d[MODE_SIZE];
 } PackedMode;
 
-/* Mode modes[NUM_MODES]; */
 PackedMode pmodes[NUM_MODES];
 Mode* mode;
 
@@ -382,8 +381,8 @@ void handleRender() {
 }
 
 void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
-  /* if (limiter > 32000) { Serial.println(accel_counter); } */
-  while (limiter < 32000) {}
+  /* if (limiter > 64000) { Serial.print(limiter); Serial.print(F("\t")); Serial.println(accel_tick); } */
+  while (limiter < 64000) {}
   limiter = 0;
 
   analogWrite(PIN_R, r);
@@ -394,12 +393,12 @@ void writeFrame(uint8_t r, uint8_t g, uint8_t b) {
 
 void flash(uint8_t r, uint8_t g, uint8_t b, uint8_t flashes) {
   for (uint8_t f = 0; f < flashes; f++) {
-    for (uint8_t t = 0; t < 100; t++) {
-        if (t < 50) { writeFrame(r, g, b); 
-        } else {      writeFrame(0, 0, 0); }
+    for (uint8_t t = 0; t < 50; t++) {
+        if (t < 25) writeFrame(r, g, b);
+        else        writeFrame(0, 0, 0);
     }
   }
-  since_trans += flashes * 100;
+  since_trans += flashes * 50;
 }
 
 
@@ -422,11 +421,11 @@ void handlePress(bool pressed) {
 
     case S_PLAY_PRESSED:
       if (conjure) {
-        if (since_trans == VERY_LONG_PRESS) flash(0, 128, 0, 5);
+        if (since_trans == VERY_LONG_HOLD) flash(0, 0, 128, 5);
         if (!pressed) {
           conjure_toggle = !conjure_toggle;
           new_state = S_PLAY_OFF;
-        } else if (since_trans >= VERY_LONG_PRESS) {
+        } else if (since_trans >= VERY_LONG_HOLD) {
           conjure = conjure_toggle = false;
           new_state = S_PLAY_OFF;
         }
@@ -441,40 +440,38 @@ void handlePress(bool pressed) {
       break;
 
     case S_PLAY_SLEEP_WAIT:
-      if (since_trans == 0) {
-        flash(128, 128, 128, 5);
-      }
-      if (since_trans >= LONG_HOLD) {
-        new_state = S_PLAY_CONFIG_WAIT;
-      } else if (!pressed) {
-        enterSleep();
-      }
-      break;
-
-    case S_PLAY_CONFIG_WAIT:
-      if (since_trans == 0) flash(128, 128, 0, 5);
       if (since_trans >= LONG_HOLD) {
         new_state = S_PLAY_CONJURE_WAIT;
       } else if (!pressed) {
-        config_state = CONFIG_COLORSA;
-        new_state = S_CONFIG_OFF;
+        enterSleep();
       }
       break;
 
     case S_PLAY_CONJURE_WAIT:
       if (since_trans == 0) flash(0, 0, 128, 5);
       if (since_trans >= LONG_HOLD) {
-        new_state = S_PLAY_LOCK_WAIT;
+        new_state = S_PLAY_CONFIG_WAIT;
       } else if (!pressed) {
-        conjure = !conjure;
+        conjure = true;
         conjure_toggle = false;
         new_state = S_PLAY_OFF;
+      }
+      break;
+
+    case S_PLAY_CONFIG_WAIT:
+      if (since_trans == 0) flash(128, 128, 0, 5);
+      if (since_trans >= LONG_HOLD) {
+        new_state = S_PLAY_LOCK_WAIT;
+      } else if (!pressed) {
+        config_state = CONFIG_COLORSA;
+        new_state = S_CONFIG_OFF;
       }
       break;
 
     case S_PLAY_LOCK_WAIT:
       if (since_trans == 0) flash(128, 0, 0, 5);
       if (since_trans > LONG_HOLD) {
+        flash(128, 128, 128, 5);
         new_state = S_PLAY_SLEEP_WAIT;
       } else if (!pressed) {
         EEPROM.update(ADDR_LOCKED, 1);
@@ -542,7 +539,6 @@ void handlePress(bool pressed) {
       break;
 
     case S_COLOR_SHADE:
-      if (since_trans == 0) flash(128, 128, 128, 5);
       if (since_trans > LONG_HOLD) {
         mode->colors[cur_variant][edit_color] += 0x40;
         since_trans = 0;
@@ -1086,46 +1082,80 @@ void handleSerial() {
 
 void handleAccel() {
   switch (accel_tick % accel_counts) {
-    case 0:   // Get raw accel values
-      accelReadXYZ();
+    case 0:
+      Wire.beginTransmission(accel_addr);
+      if (accel_model == 0) {
+        Wire.write(0x00);
+        Wire.endTransmission(false);
+      } else {
+        Wire.write(0x01);
+        Wire.endTransmission(false);
+      }
       break;
-    case 1:   // Normalize to Gs
+    case 1:
+      if (accel_model == 0) Wire.requestFrom(accel_addr, 3);
+      else                  Wire.requestFrom(accel_addr, 6);
+      break;
+    case 2:
+      if (accel_model == 0) {
+        if (Wire.available()) xg = Wire.read();
+        xg = (xg >= 32) ? -64 + xg : xg;
+        if (Wire.available()) yg = Wire.read();
+        yg = (yg >= 32) ? -64 + yg : yg;
+        if (Wire.available()) zg = Wire.read();
+        zg = (zg >= 32) ? -64 + zg : zg;
+      } else {
+        if (Wire.available()) yg = Wire.read() << 4;
+        if (Wire.available()) yg |= Wire.read() >> 4;
+        yg = (yg >= 2048) ? -4096 + yg : yg;
+        if (Wire.available()) xg = Wire.read() << 4;
+        if (Wire.available()) xg |= Wire.read() >> 4;
+        xg = (xg >= 2048) ? -4096 + xg : xg;
+        if (Wire.available()) zg = Wire.read() << 4;
+        if (Wire.available()) zg |= Wire.read() >> 4;
+        zg = (zg >= 2048) ? -4096 + zg : zg;
+      }
+      break;
+    case 3:
       accelNormalize();
       break;
-    case 2:   // Calculate the magnitude of all acceleration axes
-      a_mag = sqrt((fxg * fxg) + (fyg * fyg) + (fzg * fzg));
+    case 4:
+      fxg2 = fxg * fxg; fyg2 = fyg * fyg; fzg2 = fzg * fzg;
       break;
-    case 3:   // Track the acceleration by bins
+    case 5:
+      a_mag = sqrt(fxg2 + fyg2 + fzg2);
+      break;
+    case 6:
       accelUpdateBins();
       break;
-    case 4:   // Calculate vector of Y and Z axes for pitch calculation
-      a_pitch = sqrt((fyg * fyg) + (fzg * fzg));
+    case 7:
+      a_pitch = sqrt(fyg2 + fzg2);
       break;
-    case 5:   // Calculate pitch in radians
+    case 8:
       a_pitch = atan2(-fxg, a_pitch);
       break;
-    case 6:   // Convert pitch to degrees
-      a_pitch = (a_pitch * 180) / M_PI;
+    case 9:
+      a_pitch = (a_pitch * 180.0) / M_PI;
       break;
-    case 7:   // Calculate roll in radians
+    case 10:
       a_roll = atan2(-fyg, fzg);
       break;
-    case 8:   // Convert roll to degrees
+    case 11:
       a_roll = (a_roll * 180.0) / M_PI;
       break;
-    case 9:
+    case 12:
       if (mode->accel_mode == AMODE_OFF) {
         // noop
       } else if (mode->accel_mode == AMODE_SPEED) {
         if (mode->accel_sens == ASENS_LOW) {
-          if (cur_variant == 0 && a_speed > 15) cur_variant = 1;
-          if (cur_variant == 1 && a_speed < 11) cur_variant = 0;
+          if (cur_variant == 0 && a_speed > 11) cur_variant = 1;
+          if (cur_variant == 1 && a_speed < 9) cur_variant = 0;
         } else if (mode->accel_sens == ASENS_MEDIUM) {
-          if (cur_variant == 0 && a_speed > 8) cur_variant = 1;
-          if (cur_variant == 1 && a_speed < 4) cur_variant = 0;
+          if (cur_variant == 0 && a_speed > 7) cur_variant = 1;
+          if (cur_variant == 1 && a_speed < 6) cur_variant = 0;
         } else {
-          if (cur_variant == 0 && a_speed > 4) cur_variant = 1;
-          if (cur_variant == 1 && a_speed < 3) cur_variant = 0;
+          if (cur_variant == 0 && a_speed > 1) cur_variant = 1;
+          if (cur_variant == 1 && a_speed < 1) cur_variant = 0;
         }
       } else {
         if (cur_variant == 0 && a_speed < 3) {
@@ -1152,7 +1182,6 @@ void handleAccel() {
       }
       break;
 
-    // Can have no higher than case 15
     default:
       break;
   }
@@ -1189,57 +1218,17 @@ void accelStandby() {
   }
 }
 
-void accelReadXYZ() {
-  Wire.beginTransmission(accel_addr);
-
-  // v1 is a 6 bit value from 
-  if (accel_model == 0) {
-    Wire.write(0x00);
-    Wire.endTransmission(false);
-    Wire.requestFrom((int)accel_addr, 3);
-
-    if (Wire.available()) xg = Wire.read();
-    xg = (xg >= 32) ? -64 + xg : xg;
-
-    if (Wire.available()) yg = Wire.read();
-    yg = (yg >= 32) ? -64 + yg : yg;
-
-    if (Wire.available()) zg = Wire.read();
-    zg = (zg >= 32) ? -64 + zg : zg;
-  } else {
-    Wire.write(0x01);
-    Wire.endTransmission(false);
-    Wire.requestFrom((int)accel_addr, 6);
-
-    if (Wire.available()) xg = Wire.read() << 4;
-    if (Wire.available()) xg |= Wire.read() >> 4;
-    xg = (xg >= 2048) ? -4096 + xg : xg;
-
-    if (Wire.available()) yg = Wire.read() << 4;
-    if (Wire.available()) yg |= Wire.read() >> 4;
-    yg = (yg >= 2048) ? -4096 + yg : yg;
-
-    if (Wire.available()) zg = Wire.read() << 4;
-    if (Wire.available()) zg |= Wire.read() >> 4;
-    zg = (zg >= 2048) ? -4096 + zg : zg;
-  }
-}
-
 void accelNormalize() {
-  // Normalize accel values to gs
   float pg = (accel_model == 0) ? 21.0 : 1024.0;
   fxg = xg / pg; fyg = yg / pg; fzg = zg / pg;
 }
 
 void accelUpdateBins() {
-  // Tracks the magnitude of acceleration
-  // v1 max is ~ 2.55 - 2.64
-  // v2 max is - 3.46
   a_speed = 0;
   for (uint8_t i = 0; i < ACCEL_BINS; i++) {
-    if (a_mag > thresh_bins_p[i] || a_mag < thresh_bins_n[i]) {
+    if (a_mag > thresh_bins_p[i]) {
       thresh_last[i] = 0;
-      thresh_cnts[i] = constrain(thresh_cnts[i] + 1, 0, 200);
+      thresh_cnts[i] = max(thresh_cnts[i] + 1, 100);
     }
     thresh_last[i]++;
     if (thresh_last[i] >= thresh_falloff) thresh_cnts[i] = 0;
@@ -1248,32 +1237,28 @@ void accelUpdateBins() {
 }
 
 void detectAccelModel() {
-  // Try to talk to the v2 sensor to get it's id
   Wire.beginTransmission(V2_ACCEL_ADDR);
   Wire.write(0x0d);
   Wire.endTransmission(false);
-
-  // Read in the ID value if it's there
   Wire.requestFrom(V2_ACCEL_ADDR, 1);
   uint8_t v = 0;
   if (Wire.available()) v = Wire.read();
 
-  // Set accelerometer properties based on the model id
   if (v == 0x4a || v == 0x5a) {
-    // v2 updates at 100/s or every 20 frames
+    // v2 updates at 50/s or every 20 frames
     accel_model = 1;
     accel_addr = V2_ACCEL_ADDR;
     accel_counts = 20;
     accel_count_wrap = 20;
     thresh_falloff = 10;
-    thresh_target = 5;
+    thresh_target = 10;
   } else {
-    // v1 updates 64/s or (31.25 frames)
+    // v1 updates 64/s or (15.625 frames)
     accel_model = 0;
     accel_addr = V1_ACCEL_ADDR;
-    accel_counts = 32;
+    accel_counts = 16;
     accel_count_wrap = 125;
     thresh_falloff = 8;
-    thresh_target = 4;
+    thresh_target = 8;
   }
 }
