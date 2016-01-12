@@ -258,7 +258,7 @@ void setup() {
 
   if (EEPROM.read(ADDR_SLEEPING)) {
     EEPROM.update(ADDR_SLEEPING, 0);
-    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
     button_state = new_state = S_SLEEP_WAKE;
   }
   detachInterrupt(0);
@@ -375,7 +375,6 @@ void handleRender() {
 
   if (conjure && conjure_toggle) {
     if (since_trans > (2000 * 180)) {
-      Serial.println("");
       enterSleep();
     }
     led_r = led_g = led_b = 0;
