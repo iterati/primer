@@ -655,6 +655,7 @@ void handlePress(bool pressed) {
         new_state = S_BUNDLE_EDIT_WAIT;
       } else if (!pressed) {
         flash(128, 128, 128, 5);
+        EEPROM.update(ADDR_CUR_BUNDLE, cur_bundle);
         new_state = S_PLAY_OFF;
       }
       break;
