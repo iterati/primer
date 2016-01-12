@@ -53,7 +53,7 @@ Boolean shifted = false;
 
 
 void setup() {
-  surface.setTitle("Tekton for Primer 0.9");
+  surface.setTitle("Tekton for Primer 0.91");
   size(1000, 800);
   cp5 = new ControlP5(this);
 
@@ -125,12 +125,15 @@ void sendCmd(char cmd, int target, int addr, int val) {
   port.write(target);
   port.write(addr);
   port.write(val);
+  /* println("out<< " + cmd + " " + target + " " + addr + " " + val); */
 }
 
 void readResp() {
   int target = port.read();
   int addr = port.read();
   int val = port.read();
+
+  /* println("in << " + target + " " + addr + " " + val); */
 
   if (target == 100) { // Ack from light
     cur_preset_idx = addr;
@@ -191,13 +194,6 @@ int getColor(int v) {
     return 0;
   }
 }
-
-/* void controlEvent(CallbackEvent theEvent) { */
-/*   Controller eController = theEvent.getController(); */
-/*   String eName = eController.getName(); */
-/*   float eVal = eController.getValue(); */
-/*   int eId = eController.getId(); */
-/*   int eAction = theEvent.getAction(); */
 
 void controlEvent(ControlEvent theEvent) {
   int val = int(theEvent.getValue());
