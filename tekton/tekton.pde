@@ -132,7 +132,6 @@ void readResp() {
   int target = port.read();
   int addr = port.read();
   int val = port.read();
-
   /* println("in << " + target + " " + addr + " " + val); */
 
   if (target == 100) { // Ack from light

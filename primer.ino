@@ -32,9 +32,6 @@
 #define ADDR_SLEEPING           1023
 
 #define PRESS_DELAY             100
-/* #define SHORT_HOLD              1000 */
-/* #define LONG_HOLD               2000 */
-/* #define VERY_LONG_HOLD          6000 */
 #define SHORT_HOLD              500
 #define LONG_HOLD               1000
 #define VERY_LONG_HOLD          3000
@@ -256,6 +253,7 @@ void setup() {
   attachInterrupt(0, pushInterrupt, FALLING);
 
   if (EEPROM.read(ADDR_SLEEPING)) {
+    while (!eeprom_is_ready());
     EEPROM.update(ADDR_SLEEPING, 0);
     LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
     button_state = new_state = S_SLEEP_WAKE;
@@ -474,6 +472,7 @@ void handlePress(bool pressed) {
         flash(128, 128, 128, 5);
         new_state = S_PLAY_SLEEP_WAIT;
       } else if (!pressed) {
+        while (!eeprom_is_ready());
         EEPROM.update(ADDR_LOCKED, 1);
         enterSleep();
       }
@@ -651,6 +650,7 @@ void handlePress(bool pressed) {
         new_state = S_BUNDLE_EDIT_WAIT;
       } else if (!pressed) {
         flash(128, 128, 128, 5);
+        while (!eeprom_is_ready());
         EEPROM.update(ADDR_CUR_BUNDLE, cur_bundle);
         new_state = S_PLAY_OFF;
       }
@@ -713,6 +713,7 @@ void handlePress(bool pressed) {
         if (since_trans == VERY_LONG_HOLD) flash(0, 128, 0, 5);
         if (!pressed) {
           if (since_trans > VERY_LONG_HOLD) {
+            while (!eeprom_is_ready());
             EEPROM.update(ADDR_LOCKED, 0);
             new_state = S_PLAY_OFF;
           } else {
@@ -784,6 +785,7 @@ void handlePress(bool pressed) {
       flash(128, 128, 128, 1);
       flash(0, 128, 0, 1);
       flash(128, 128, 128, 1);
+      while (!eeprom_is_ready());
       saveMode(cur_mode_idx);
       new_state = S_PLAY_OFF;
       break;
@@ -794,6 +796,7 @@ void handlePress(bool pressed) {
       flash(128, 128, 128, 1);
       flash(0, 0, 128, 1);
       flash(128, 128, 128, 1);
+      while (!eeprom_is_ready());
       saveBundles();
       new_state = S_PLAY_OFF;
       break;
@@ -826,6 +829,7 @@ void handlePress(bool pressed) {
 void enterSleep() {
   writeFrame(0, 0, 0);
   accelStandby();
+  while (!eeprom_is_ready());
   EEPROM.update(ADDR_SLEEPING, 1);
   digitalWrite(PIN_LDO, LOW);
   delay(64000);
@@ -896,6 +900,7 @@ void loadBundles() {
 }
 
 void resetMemory() {
+  while (!eeprom_is_ready());
   clearMemory();
   initModes();
   saveModes();
