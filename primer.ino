@@ -252,17 +252,16 @@ void setup() {
   pinMode(PIN_BUTTON, INPUT);
   attachInterrupt(0, pushInterrupt, FALLING);
 
-  if (EEPROM.read(ADDR_SLEEPING)) {
-    while (!eeprom_is_ready());
-    EEPROM.update(ADDR_SLEEPING, 0);
+  if (EEPROMread(ADDR_SLEEPING)) {
+    EEPROMupdate(ADDR_SLEEPING, 0);
     LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
     button_state = new_state = S_SLEEP_WAKE;
   }
   detachInterrupt(0);
 
-  if (EEPROM_VERSION != EEPROM.read(ADDR_VERSION)) {
+  if (EEPROM_VERSION != EEPROMread(ADDR_VERSION)) {
     resetMemory();
-    EEPROM.update(ADDR_VERSION, EEPROM_VERSION);
+    EEPROMupdate(ADDR_VERSION, EEPROM_VERSION);
   } else {
     loadModes();
     loadBundles();
@@ -270,7 +269,7 @@ void setup() {
   }
 
   Serial.begin(57600);
-  cur_bundle = EEPROM.read(ADDR_CUR_BUNDLE);
+  cur_bundle = EEPROMread(ADDR_CUR_BUNDLE);
 
   pinMode(PIN_R, OUTPUT);
   pinMode(PIN_G, OUTPUT);
@@ -472,8 +471,7 @@ void handlePress(bool pressed) {
         flash(128, 128, 128, 5);
         new_state = S_PLAY_SLEEP_WAIT;
       } else if (!pressed) {
-        while (!eeprom_is_ready());
-        EEPROM.update(ADDR_LOCKED, 1);
+        EEPROMupdate(ADDR_LOCKED, 1);
         enterSleep();
       }
       break;
@@ -650,8 +648,7 @@ void handlePress(bool pressed) {
         new_state = S_BUNDLE_EDIT_WAIT;
       } else if (!pressed) {
         flash(128, 128, 128, 5);
-        while (!eeprom_is_ready());
-        EEPROM.update(ADDR_CUR_BUNDLE, cur_bundle);
+        EEPROMupdate(ADDR_CUR_BUNDLE, cur_bundle);
         new_state = S_PLAY_OFF;
       }
       break;
@@ -709,12 +706,11 @@ void handlePress(bool pressed) {
 
     // On Wake
     case S_SLEEP_WAKE:
-      if (EEPROM.read(ADDR_LOCKED)) {
+      if (EEPROMread(ADDR_LOCKED)) {
         if (since_trans == VERY_LONG_HOLD) flash(0, 128, 0, 5);
         if (!pressed) {
           if (since_trans > VERY_LONG_HOLD) {
-            while (!eeprom_is_ready());
-            EEPROM.update(ADDR_LOCKED, 0);
+            EEPROMupdate(ADDR_LOCKED, 0);
             new_state = S_PLAY_OFF;
           } else {
             enterSleep();
@@ -785,7 +781,6 @@ void handlePress(bool pressed) {
       flash(128, 128, 128, 1);
       flash(0, 128, 0, 1);
       flash(128, 128, 128, 1);
-      while (!eeprom_is_ready());
       saveMode(cur_mode_idx);
       new_state = S_PLAY_OFF;
       break;
@@ -796,7 +791,6 @@ void handlePress(bool pressed) {
       flash(128, 128, 128, 1);
       flash(0, 0, 128, 1);
       flash(128, 128, 128, 1);
-      while (!eeprom_is_ready());
       saveBundles();
       new_state = S_PLAY_OFF;
       break;
@@ -829,8 +823,7 @@ void handlePress(bool pressed) {
 void enterSleep() {
   writeFrame(0, 0, 0);
   accelStandby();
-  while (!eeprom_is_ready());
-  EEPROM.update(ADDR_SLEEPING, 1);
+  EEPROMupdate(ADDR_SLEEPING, 1);
   digitalWrite(PIN_LDO, LOW);
   delay(64000);
 }
@@ -840,7 +833,7 @@ void pushInterrupt() {}
 
 void clearMemory() {
   for (int i = 0; i < 1024; i++) {
-    EEPROM.update(i, 0);
+    EEPROMupdate(i, 0);
   }
 }
 
@@ -863,7 +856,7 @@ void initBundles() {
 
 void saveMode(uint8_t idx) {
   for (uint8_t b = 0; b < MODE_SIZE; b++) {
-    EEPROM.update(ADDR_MODES + (idx * 40) + b, pmodes[idx].d[b]);
+    EEPROMupdate(ADDR_MODES + (idx * 40) + b, pmodes[idx].d[b]);
   }
 }
 
@@ -873,16 +866,16 @@ void saveModes() {
 
 void saveBundles() {
   for (uint8_t b = 0; b < NUM_BUNDLES; b++) {
-    EEPROM.update(ADDR_BUNDLES + (b * 20), bundle_slots[b]);
+    EEPROMupdate(ADDR_BUNDLES + (b * 20), bundle_slots[b]);
     for (uint8_t s = 0; s < NUM_MODES; s++) {
-      EEPROM.update(ADDR_BUNDLES + (b * 20) + s + 1, bundles[b][s]);
+      EEPROMupdate(ADDR_BUNDLES + (b * 20) + s + 1, bundles[b][s]);
     }
   }
 }
 
 void loadMode(uint8_t idx) {
   for (uint8_t b = 0; b < MODE_SIZE; b++) {
-    pmodes[idx].d[b] = EEPROM.read(ADDR_MODES + (idx * 40) + b);
+    pmodes[idx].d[b] = EEPROMread(ADDR_MODES + (idx * 40) + b);
   }
 }
 
@@ -892,15 +885,14 @@ void loadModes() {
 
 void loadBundles() {
   for (uint8_t b = 0; b < NUM_BUNDLES; b++) {
-    bundle_slots[b] = EEPROM.read(ADDR_BUNDLES + (b * 20));
+    bundle_slots[b] = EEPROMread(ADDR_BUNDLES + (b * 20));
     for (uint8_t s = 0; s < NUM_MODES; s++) {
-      bundles[b][s] = EEPROM.read(ADDR_BUNDLES + (b * 20) + s + 1);
+      bundles[b][s] = EEPROMread(ADDR_BUNDLES + (b * 20) + s + 1);
     }
   }
 }
 
 void resetMemory() {
-  while (!eeprom_is_ready());
   clearMemory();
   initModes();
   saveModes();
@@ -1266,4 +1258,14 @@ void detectAccelModel() {
     thresh_falloff = 8;
     thresh_target = 8;
   }
+}
+
+void EEPROMupdate(uint16_t addr, uint8_t val) {
+  while (!eeprom_is_ready());
+  EEPROM.update(addr, val);
+}
+
+uint8_t EEPROMread(uint16_t addr) {
+  while (!eeprom_is_ready());
+  return EEPROM.read(addr);
 }
